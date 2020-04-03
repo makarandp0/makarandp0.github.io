@@ -1,0 +1,50 @@
+<p>canvas</p>
+<canvas id="whiteNoise" width="120" height="120"></canvas>
+<canvas id="rotatingWord" width="120" height="120"></canvas>
+<button id="startBtn">Start</button>
+<video id="local_video_whiteNoise" width="200" autoplay=true></video>
+<video id="local_video_rotatingWord" width="200" autoplay=true></video>
+<script>
+async function getWhiteNoiseStream() {
+  const canvas  = document.getElementById("whiteNoise");
+  let ctx = canvas.getContext('2d');
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let p = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  requestAnimationFrame(function draw(){
+    for (var i = 0; i < p.data.length; i++) {
+      p.data[i++] = p.data[i++] = p.data[i++] = Math.random() * 255;
+    }
+    ctx.putImageData(p, 0, 0);
+    requestAnimationFrame(draw);
+  });
+  return canvas.captureStream(60);
+};
+
+async function canvasStream(word) {
+  const canvas  = document.getElementById("rotatingWord");
+  let ctx = canvas.getContext('2d');
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  var wordWidth=ctx.measureText(word).width;
+  var r=0;
+  requestAnimationFrame(function animate() {
+    r+=Math.PI/180;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(r);
+    ctx.font = "40px Verdana";
+    ctx.fillText(word, -wordWidth / 2, 4);
+    ctx.restore();
+    requestAnimationFrame(animate);
+  });
+  return canvas.captureStream(10);
+}
+
+async function main() {
+  console.log("inside main");
+  document.getElementById('local_video_whiteNoise').srcObject = await getWhiteNoiseStream();;
+  document.getElementById('local_video_rotatingWord').srcObject = await canvasStream("Mak");;
+}
+document.getElementById('startBtn').onclick = main;
+</script>

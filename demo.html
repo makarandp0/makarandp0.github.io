@@ -1,0 +1,108 @@
+<canvas id="canvas" width="300" height="300" style="border:1px solid #d3d3d3;"></canvas>
+<button id="demo">Start Demo</button>
+<br>
+<video id="local_video" width="200" autoplay=true></video>
+<br>
+<video id="remote_video" width="200" autoplay=true></video>
+<br>
+<video id="target_video" width="400" autoplay=true></video>
+<br>
+
+<script>
+function log(message) {
+  console.log(message);
+  const p = document.createElement('p');
+  p.innerText = message;;
+  document.body.appendChild(p);
+}
+
+async function canvasStream(word) {
+  const canvas  = document.getElementById("canvas");
+  let ctx = canvas.getContext('2d');
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  var wordWidth=ctx.measureText(word).width;
+  var r=0;
+  requestAnimationFrame(function animate() {
+    r+=Math.PI/180;
+    ctx.fillStyle = "white";
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "green";
+    ctx.save();
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(r);
+    ctx.font = "40px Verdana";
+    ctx.fillText(word, -wordWidth / 2, 4);
+    ctx.restore();
+    requestAnimationFrame(animate);
+  });
+  return canvas.captureStream(10);
+}
+document.getElementById('demo').onclick = main;
+
+const target_video = document.getElementById('target_video');
+const remote_video = document.getElementById('remote_video');
+const local_video = document.getElementById('local_video');
+
+// replaces video tracks target_video to given stream
+function switchVideo(srcMediaStream) {
+  if (target_video.srcObject == null) {
+    target_video.srcObject = new MediaStream();
+  }
+  const targetMediaStream = target_video.srcObject;
+  targetMediaStream.getVideoTracks().forEach(track => targetMediaStream.removeTrack(track));
+  srcMediaStream.getVideoTracks().forEach(track => targetMediaStream.addTrack(track));
+}
+
+async function waitASecond() {
+  return new Promise(resolve => setTimeout(resolve, 1000));
+}
+
+async function main() {
+  log('Step 1: get GUM stream');
+  const userMediaStream  = await canvasStream('Hello');
+  local_video.srcObject = userMediaStream;
+
+  log('Step 2: Negotiate and Get Remote Stream');
+  remote_video.srcObject = await negotiate(userMediaStream);;
+
+  // await waitASecond();
+  // log('Step 3: Set Remote Stream in target_video');
+  // switchVideo(remote_video.srcObject);
+
+  // await waitASecond();
+  // log('Step 4: Set Local Stream in target_video');
+  // switchVideo(local_video.srcObject);
+
+  // await waitASecond();
+  // log('Step 5: Set Remote Stream in target_video');
+  // switchVideo(remote_video.srcObject);
+
+  // log('Notice that target video element is frozen!');
+}
+
+//
+// 1) creates peer connections
+// 2) adds local stream
+// 3) negotiates connection
+// 4) returns remote stream.
+async function negotiate(localStream) {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  pc2.onicecandidate = (event) => event.candidate && pc1.addIceCandidate(event.candidate);
+  pc1.onicecandidate = (event) => event.candidate && pc2.addIceCandidate(event.candidate);
+
+  return new Promise( async (resolve) => {
+    pc1.addStream(localStream);
+    pc2.onaddstream = (event) => resolve(event.stream);
+
+    const offer = await pc1.createOffer();
+    pc1.setLocalDescription(offer);
+    pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    pc2.setLocalDescription(answer);
+    pc1.setRemoteDescription(answer);
+  });
+}
+
+</script>

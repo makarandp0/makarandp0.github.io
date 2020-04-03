@@ -1,0 +1,81 @@
+
+<p> local video </p>
+<video id="local_video" width="100" autoplay="true" muted="true"></video>
+
+<p> remove video </p>
+<video id="remote_video" width="100" autoplay="true"></video>
+
+
+<p> selected Video </p>
+<input id="updateSrcObjChk" type="checkbox" > update srcObject on switch <br>
+<h6 id="selectedName"> none </h6>
+<video id="other_video" width="100" autoplay="true"></video>
+
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script>
+
+var pc1 = new RTCPeerConnection({"iceServers": []}, { optional: [{ googDscp: true}] });
+var pc2 = new RTCPeerConnection({"iceServers": []}, { optional: [{ googDscp: true}] });
+
+let targetMediaStream = null;
+const targetVideoElement = document.getElementById('other_video');
+function switchVideo(event) {
+  const newMediaStream = event.target.srcObject;
+
+  if (targetMediaStream == null) {
+    targetMediaStream = new MediaStream();
+    targetVideoElement.srcObject = targetMediaStream;
+  }
+  targetMediaStream.getVideoTracks().forEach(track => targetMediaStream.removeTrack(track));
+  newMediaStream.getVideoTracks().forEach(track => targetMediaStream.addTrack(track));
+  if (document.getElementById("updateSrcObjChk").checked) {
+    targetVideoElement.srcObject = targetMediaStream;
+  }
+  console.group('makarand ', event);
+  document.getElementById("selectedName").textContent = event.srcElement.id;
+}
+
+pc2.onaddstream = function(evt) {
+  var video = document.getElementById('remote_video');
+  video.srcObject = evt.stream;
+  video.addEventListener('click', switchVideo);
+};
+
+function negotiate() {
+  return pc1.createOffer()
+    .then(offer => {
+      pc1.setLocalDescription(offer)
+      return pc2.setRemoteDescription(offer);
+    })
+    .then(_ => {
+      return pc2.createAnswer();
+    })
+    .then(answer => {
+      pc2.setLocalDescription(answer);
+      return pc1.setRemoteDescription(answer);
+    });
+}
+
+navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+.then(function(stream) {
+    var video = document.getElementById('local_video');
+    video.srcObject = stream;
+    video.addEventListener('click', switchVideo);
+    pc1.addStream(stream);
+
+    negotiate();
+});
+
+pc2.onicecandidate = function (event) {
+   if (event.candidate) {
+     pc1.addIceCandidate(event.candidate);;
+   }
+};
+
+pc1.onicecandidate = function (event) {
+   if (event.candidate) {
+     pc2.addIceCandidate(event.candidate);;
+   }
+};
+
+</script>

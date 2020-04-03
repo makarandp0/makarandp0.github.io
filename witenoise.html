@@ -1,0 +1,26 @@
+<p>start</p>
+<canvas id="canvas" width="120" height="120"></canvas>
+<video id="local_video" width="200" autoplay=true></video>
+<script>
+async function getWhiteNoiseStream() {
+  let ctx = canvas.getContext('2d');
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let p = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  requestAnimationFrame(function draw(){
+    for (var i = 0; i < p.data.length; i++) {
+      p.data[i++] = p.data[i++] = p.data[i++] = Math.random() * 255;
+    }
+    ctx.putImageData(p, 0, 0);
+    requestAnimationFrame(draw);
+  });
+  return canvas.captureStream(60);
+};
+
+async function main() {
+  console.log("inside main");
+  const local_video = document.getElementById('local_video');
+  const noiseStream = await getWhiteNoiseStream();
+  local_video.srcObject = noiseStream;
+}
+main();
+</script>

@@ -1,0 +1,122 @@
+<html>
+<body>
+    <p>
+        Step 1: Acquire Audio Track
+        <button id="getUserMedia">Acquire Audio Track</button>
+    </p>
+
+    <p>
+        Step 2: Attach to Audio Element'
+        <input id="autoPlayChk" type="checkbox" > AutoPlay (Ignored)  <br>
+        <input id="mutedChk" type="checkbox" > Muted (Ignored) <br>
+
+        <button id="createAudioElement">Create Audio Element</button>
+    </p>
+
+    <p>
+        Step 2: Disable the track
+        <button id="toggle-audio">Toggle Audio</button>
+    </p>
+
+    <p>
+        Step 3: Switch App (make safari background) for few seconds
+    </p>
+
+    <p>
+        Step 4: Notice that track is in state = ended!
+        <button id="checkstateBtn">Check Track</button>
+        <input id="readyState-state" type="text" placeholder="not created yet" />
+    </p>
+
+    <br>
+    Step 5: Re-aquire Audio Track
+    <br>
+    Step 6: ReAttach to Audio Element
+    <br>
+    Step 7: Disable the track
+    <br>
+    Step 7: Notice the track ends automatically!
+    <br>
+
+    <p>
+    Optional) addAudioToDOM();
+    <button id="addAudioToDOM">document.body.appendChild(audioElement);</button>
+    </p>
+    <p>
+    <button id="removeAudioFromDOM">audioElement.remove();</button>
+    </p>
+<script>
+    const toggleAudioBtn = document.getElementById("toggle-audio");
+    toggleAudioBtn.disabled = true;
+
+    let stream = null;
+    let audioTrack = null;
+    let audioElement = null;
+
+
+    function updateTrackState() {
+        const readyState = document.getElementById('readyState-state');
+        let audioState;
+        if (audioTrack) {
+            audioState = audioTrack.enabled ? 'enabled' : 'disabled';
+            audioState += ', ' + audioTrack.readyState;
+        } else {
+            audioState = 'unknown';
+        }
+        readyState.value = audioState;
+        readyState.style.backgroundColor = audioTrack.readyState === 'ended' ? 'red' : audioTrack.enabled ? 'green' : 'yellow'
+    }
+
+    document.getElementById("checkstateBtn").onclick = updateTrackState;
+
+    const constraints = window.constraints = { audio: true, video: false };
+    document.getElementById("getUserMedia").onclick = async function() {
+        if (audioTrack) {
+            audioTrack.onended = null;
+            audioTrack = null;
+        }
+
+        toggleAudioBtn.disabled = true;
+        document.getElementById("createAudioElement").disabled = true;
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("got the stream");
+        const audioTracks = stream.getAudioTracks();
+        console.log(audioTracks);
+        audioTrack = audioTracks[0];
+        toggleAudioBtn.innerHTML = 'Disable Track';
+        updateTrackState();
+        audioTrack.onended = updateTrackState;
+        console.log("got audio track");
+        toggleAudioBtn.disabled = false;
+        document.getElementById("createAudioElement").disabled = false;
+    }
+
+    document.getElementById("createAudioElement").onclick = function createAudioElement() {
+        const audio = document.createElement('audio');
+        audio.autoplay = true;
+        audio.controls = true;
+        // audio.autoplay = document.getElementById("autoPlayChk").checked;
+        // audio.muted = document.getElementById("mutedChk").checked;
+        console.log("autoplay = ", audio.autoplay, "muted = ", audio.muted);
+
+        // audio.controls = true
+        audio.srcObject = stream;
+        audio.playsInline = true;
+        console.log('created audio element!');
+        return audio;
+    }
+
+
+    toggleAudioBtn.onclick = function() {
+        audioTrack.enabled = !audioTrack.enabled;
+        toggleAudioBtn.innerHTML = audioTrack.enabled ? 'Disable Track' : 'Enable Track';
+        updateTrackState();
+        console.log('Toggled Audio to audioTrack.enabled:', audioTrack.enabled);
+    }
+
+    document.getElementById('addAudioToDOM').onclick = () => document.body.appendChild(audioElement);
+    document.getElementById('removeAudioFromDOM').onclick = () => audioElement.remove();
+
+</script>
+</body>
+</html>

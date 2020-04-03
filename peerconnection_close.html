@@ -1,0 +1,28 @@
+<html>
+<body>
+    <p>
+        On Chrome 78.0.3904.108:
+
+        calling RTCPeerConnection.close()
+        <b>fires</b> iceconnectionstatechange event.
+        as state changes from new to closed.
+
+    </p>
+    <p>
+        On Chrome 81.0.3990.0:
+
+        calling RTCPeerConnection.close()
+        <b>does not fire</b> iceconnectionstatechange event.
+        as state changes from new to closed.
+
+    </p>
+</body>
+<script>
+    const pc1 = new RTCPeerConnection({"iceServers": []});
+    pc1.addEventListener('iceconnectionstatechange', () => {
+      console.log('got iceconnectionstatechange!')
+      document.body.style.backgroundColor = "green";
+    });
+    pc1.close();
+</script>
+</html>

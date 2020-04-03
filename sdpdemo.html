@@ -1,0 +1,224 @@
+<html>
+  <head>
+    <style>
+        .pc {
+          background-color: black;
+          color: white;
+          margin: 20px;
+          padding: 20px;
+        }
+
+        .sdp {
+          background-color: black;
+          color: burlywood;
+          margin: 2px;
+          padding: 2px;
+          width: 400px;
+          height: 400px;
+        }
+
+        video {
+          width: 100
+        }
+
+        .localVideo {
+          border: solid green 2px;
+        }
+
+        .remoteVideo {
+          border: solid red 2px;
+        }
+
+        .log {
+          border: solid black 2px;
+          width: 16em;
+          margin: 0 1.5em;
+          text-align: center;
+        }
+
+    </style>
+  </head>
+
+<div class="pc" id="pc1">
+  <h1>Plan-B</h1>
+  <div class="media"></div>
+  <br>
+  <button class="userMedia" id="userMedia1"> user Media </button>
+  <button class="displayMedia" id="displayMedia1"> display Media </button>
+  <button class="createOffer" id="createOffer1"> create offer </button>
+  <button class="createAnswer" id="createAnswer1"> create answer </button>
+  <button class="setLocalDescription"> Set Local Description </button>
+  <button class="setRemoteDescription"> Set Remote Description </button>
+  <br>
+  <!-- <textarea class="sdp" id="sdp1" type="text" placeholder="not created yet"> nothing here yet </textarea> -->
+</div>
+<div class="pc" id="pc2">
+  <h1>Unified</h1>
+  <div class="media"></div>
+  <br>
+  <button class="userMedia" id="userMedia2"> user Media </button>
+  <button class="displayMedia" id="displayMedia2"> display Media </button>
+  <button class="createOffer" id="createOffer2"> create offer </button>
+  <button class="createAnswer" id="createAnswer2"> create answer </button>
+  <button class="setLocalDescription"> Set Local Description </button>
+  <button class="setRemoteDescription"> Set Remote Description </button>
+  <br>
+  <!-- <textarea class="sdp" id="sdp2" type="text" placeholder="not created yet"> nothing here yet </textarea> -->
+</div>
+<textarea class="sdp" id="sdp" type="text"> nothing here yet </textarea>
+<div class="log" id="log"></div>
+
+
+<!-- <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script> -->
+<script>
+
+// Activity log.
+function log(message) {
+  var logDiv = document.getElementById('log');
+  logDiv.innerHTML += '<p>&gt;&nbsp;' + message + '</p>';
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+log('started');
+var planB = new RTCPeerConnection({"iceServers": [], "sdpSemantics" : "plan-b"});
+var unified = new RTCPeerConnection({"iceServers": [], "sdpSemantics" : "unified-plan"});
+
+window.testpcs = [planB, unified];
+
+const planBPCDiv = document.getElementById("pc1");
+const unifiedPCDiv = document.getElementById("pc2");
+
+managePC(planB, planBPCDiv, unified);
+managePC(unified, unifiedPCDiv, planB);
+
+// adds video track from given media stream to given PC, and visualizes in given container
+function addLocalTrackToPC(stream, pc, container) {
+  const video = document.createElement("video");
+  video.classList.add('localVideo');
+  video.srcObject = stream;
+  video.autoplay = true;
+  container.appendChild(video);
+  const track = stream.getVideoTracks()[0];
+  pc.addTrack(track);
+}
+
+function getChildElementByClass(element, className) {
+  var elements = element.getElementsByClassName(className);
+  return elements[0];
+}
+
+function removeMsLabel(sdp) {
+  return sdp.split('\r\n').filter(a => {
+    const skip = /a=ssrc:.*label/g.test(a) === true;
+    if (skip) {
+      log(`Skipping: ${a}`);
+    }
+    return !skip;
+  }).join('\r\n');
+}
+
+function managePC(thisPC, div1, otherPC) {
+  const sdpInput = document.getElementById("sdp");
+  const mediaDiv = getChildElementByClass(div1, "media");
+
+    // we can apply ice candidates only after remote description is set.
+    let queuedCandidates = [];
+    otherPC.onsignalingstatechange = function(event) {
+      if (otherPC.remoteDescription !== null) {
+        queuedCandidates.forEach(candidate => {
+          console.log('applied ice candidate');
+          otherPC.addIceCandidate(candidate)
+        });
+        queuedCandidates = [];
+      }
+    };
+
+    thisPC.onicecandidate = function (event) {
+      if (event.candidate) {
+        if (otherPC.remoteDescription !== null) {
+          console.log('applied ice candidate');
+          otherPC.addIceCandidate(candidate)
+        } else {
+          console.log('queued ice candidate');
+          queuedCandidates.push(event.candidate);
+        }
+      }
+    };
+
+    thisPC.ontrack = function(event) {
+      const video = document.createElement("video");
+      video.classList.add('remoteVideo');
+      const stream = new MediaStream();
+      stream.addTrack(event.track);
+      video.srcObject = stream;
+      video.autoplay = true;
+      mediaDiv.appendChild(video);
+    };
+
+    const createOfferBtn = getChildElementByClass(div1, "createOffer");
+    createOfferBtn.onclick = async function(event) {
+      try {
+        const offer = await thisPC.createOffer();
+        // remove mslabel and label attributes.
+        offer.sdp = removeMsLabel(offer.sdp);
+        sdpInput.value = JSON.stringify(offer.toJSON());
+      } catch (e) {
+        console.log('failed to create offer: ', e.message);
+      }
+    }
+
+    const createAnswerBtn = getChildElementByClass(div1, "createAnswer");
+    createAnswerBtn.onclick = async function(event) {
+      try {
+        const answer = await thisPC.createAnswer();
+        answer.sdp = removeMsLabel(answer.sdp);
+        sdpInput.value = JSON.stringify(answer.toJSON());
+      } catch (e) {
+        console.log('failed to createAnswer: ', e.message);
+      }
+    }
+
+    const setRemoteDescriptionBtn = getChildElementByClass(div1, "setRemoteDescription");
+    setRemoteDescriptionBtn.onclick = async function(event) {
+      try {
+        const sdp = JSON.parse(sdpInput.value);
+        await thisPC.setRemoteDescription(sdp);
+        console.log('set remote description:', sdp.type);
+      } catch (e) {
+        console.log('failed to setRemoteDescription: ', e.message);
+      }
+    }
+
+    const setLocalDescriptionBtn = getChildElementByClass(div1, "setLocalDescription");
+    setLocalDescriptionBtn.onclick = async function(event) {
+      try {
+        const sdp = JSON.parse(sdpInput.value);
+        await thisPC.setLocalDescription(sdp);
+        console.log('set local description:', sdp.type);
+      } catch (e) {
+        console.log('failed to setLocalDescription: ', e.message);
+      }
+    }
+
+    const userMediaBtn = getChildElementByClass(div1, "userMedia");
+    userMediaBtn.onclick = async function(event) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        addLocalTrackToPC(stream, thisPC, mediaDiv);
+      } catch (e) {
+        console.log('getUserMedia failed: ', e.message);
+      }
+    }
+
+    const displayMediaBtn = getChildElementByClass(div1, "displayMedia");
+    displayMediaBtn.onclick = async function(event) {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia();
+        addLocalTrackToPC(stream, thisPC, mediaDiv);
+      } catch (e) {
+        console.log('getDisplayMedia failed: ', e.message);
+      }
+    }
+}
+</script>
+</html>
