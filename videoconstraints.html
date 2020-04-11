@@ -37,15 +37,21 @@ document.getElementById('getUserMedia').onclick = async function () {
 
 document.getElementById('negotiate').onclick = async function () {
   log('Step 2: Negotiate and Get Remote Stream');
-  const {remoteStream, localPC, remotePC } = await negotiate(localVideoTrack);
+  const { remoteStream, localPC, remotePC } = await negotiate(localVideoTrack);
   remote_video.srcObject = remoteStream;
 
-  const stat1 = await remotePC.getStats();
-  console.log('Values1', Array.from(stat1.values()));
+  const localStats1 = await localPC.getStats();
+  const remoteStats1 = await remotePC.getStats();
 
   await waitForSometime(4);
-  const stat2 = await remotePC.getStats();
-  console.log('Values2', Array.from(stat2.values()));
+
+  const localStats2 = await localPC.getStats();
+  const remoteStats2 = await remotePC.getStats();
+
+  console.log('localStats1', Array.from(localStats1.values()));
+  console.log('localStats2', Array.from(localStats2.values()));
+  console.log('remoteStats1', Array.from(remoteStats1.values()));
+  console.log('remoteStats2', Array.from(remoteStats2.values()));
 };
 
 
@@ -54,9 +60,9 @@ async function waitForSometime(seconds) {
   return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
 
-//
+// negotiate
 // 1) creates peer connections
-// 2) adds local stream
+// 2) adds local track
 // 3) negotiates connection
 // 4) returns remote stream.
 async function negotiate(localTrack) {
