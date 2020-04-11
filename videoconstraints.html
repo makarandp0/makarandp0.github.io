@@ -1,0 +1,83 @@
+<label for="videoConstraints">VideoConstraints:</label>
+<input type="text" id="video_constraints" name="video_constraints" size="100" value='{"width":1920,"height":1080,"frameRate":24}'>
+<br><br>
+<button id="getUserMedia">Step 1: getUserMedia</button>
+<br><br>
+<video id="local_video" width="200" autoplay=true></video>
+<br><br>
+<button id="negotiate">Step 2: negotiate</button>
+<br><br>
+<video id="remote_video" width="200" autoplay=true></video>
+<br><br>
+
+
+<script>
+function log(message) {
+  console.log(message);
+  const p = document.createElement('p');
+  p.innerText = message;;
+  document.body.appendChild(p);
+}
+
+const video_constraints = document.getElementById('video_constraints');
+const remote_video = document.getElementById('remote_video');
+const local_video = document.getElementById('local_video');
+
+let userMediaStream = null;
+document.getElementById('getUserMedia').onclick = async function () {
+  log('Step 0: check video constraints: ' + video_constraints.value);
+  const videoConstraints = JSON.parse(video_constraints.value);
+
+  log('Step 1: get GUM stream');
+  userMediaStream  = await navigator.mediaDevices.getUserMedia({ audio: false, video: videoConstraints });
+  local_video.srcObject = userMediaStream;
+};
+
+document.getElementById('negotiate').onclick = async function () {
+  log('Step 2: Negotiate and Get Remote Stream');
+  const {remoteStream, localPC, remotePC } = await negotiate(userMediaStream);
+  remote_video.srcObject = remoteStream;
+
+  const stat1 = await remotePC.getStats();
+  console.log('Values1', Array.from(stat1.values()));
+
+  await waitForSometime(4);
+  const stat2 = await remotePC.getStats();
+  console.log('Values2', Array.from(stat2.values()));
+};
+
+
+async function waitForSometime(seconds) {
+  seconds = seconds || 0;
+  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+}
+
+//
+// 1) creates peer connections
+// 2) adds local stream
+// 3) negotiates connection
+// 4) returns remote stream.
+async function negotiate(localStream) {
+  const localPC = new RTCPeerConnection();
+  const remotePC = new RTCPeerConnection();
+  remotePC.onicecandidate = (event) => event.candidate && localPC.addIceCandidate(event.candidate);
+  localPC.onicecandidate = (event) => event.candidate && remotePC.addIceCandidate(event.candidate);
+
+  return new Promise( async (resolve) => {
+    localPC.addStream(localStream);
+    remotePC.onaddstream = (event) => resolve({
+      remoteStream: event.stream,
+      localPC,
+      remotePC
+    });
+
+    const offer = await localPC.createOffer();
+    localPC.setLocalDescription(offer);
+    remotePC.setRemoteDescription(offer);
+    const answer = await remotePC.createAnswer();
+    remotePC.setLocalDescription(answer);
+    localPC.setRemoteDescription(answer);
+  });
+}
+
+</script>
