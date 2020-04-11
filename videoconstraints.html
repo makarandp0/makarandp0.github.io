@@ -23,7 +23,7 @@ const video_constraints = document.getElementById('video_constraints');
 const remote_video = document.getElementById('remote_video');
 const local_video = document.getElementById('local_video');
 
-let userMediaStream = null;
+let localVideoTrack = null;
 document.getElementById('getUserMedia').onclick = async function () {
   log('Step 0: check video constraints: ' + video_constraints.value);
   const videoConstraints = JSON.parse(video_constraints.value);
@@ -31,11 +31,13 @@ document.getElementById('getUserMedia').onclick = async function () {
   log('Step 1: get GUM stream');
   userMediaStream  = await navigator.mediaDevices.getUserMedia({ audio: false, video: videoConstraints });
   local_video.srcObject = userMediaStream;
+
+  localVideoTrack = userMediaStream.getVideoTracks()[0];
 };
 
 document.getElementById('negotiate').onclick = async function () {
   log('Step 2: Negotiate and Get Remote Stream');
-  const {remoteStream, localPC, remotePC } = await negotiate(userMediaStream);
+  const {remoteStream, localPC, remotePC } = await negotiate(localVideoTrack);
   remote_video.srcObject = remoteStream;
 
   const stat1 = await remotePC.getStats();
@@ -57,19 +59,22 @@ async function waitForSometime(seconds) {
 // 2) adds local stream
 // 3) negotiates connection
 // 4) returns remote stream.
-async function negotiate(localStream) {
+async function negotiate(localTrack) {
   const localPC = new RTCPeerConnection();
   const remotePC = new RTCPeerConnection();
   remotePC.onicecandidate = (event) => event.candidate && localPC.addIceCandidate(event.candidate);
   localPC.onicecandidate = (event) => event.candidate && remotePC.addIceCandidate(event.candidate);
 
   return new Promise( async (resolve) => {
-    localPC.addStream(localStream);
-    remotePC.onaddstream = (event) => resolve({
-      remoteStream: event.stream,
-      localPC,
-      remotePC
-    });
+    localPC.addTrack(localTrack);
+    remotePC.ontrack = (event) => {
+      console.log('got track:', event.track)
+      resolve({
+          remoteStream: new MediaStream([event.track]),
+          localPC,
+          remotePC
+        });
+    }
 
     const offer = await localPC.createOffer();
     localPC.setLocalDescription(offer);
