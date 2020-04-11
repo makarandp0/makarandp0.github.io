@@ -5,11 +5,16 @@
 <br><br>
 <video id="local_video" width="200" autoplay=true></video>
 <br><br>
+<label for="packetsSent">packetsSent:</label>
+<input type="text" id="packetsSent" name="packetsSent" size="20" value=''>
+<br><br>
 <button id="negotiate">Step 2: negotiate</button>
 <br><br>
 <video id="remote_video" width="200" autoplay=true></video>
 <br><br>
-
+<label for="packetsReceived">packetsReceived:</label>
+<input type="text" id="packetsReceived" name="packetsReceived" size="20" value=''>
+<br><br>
 
 <script>
 function log(message) {
@@ -17,6 +22,20 @@ function log(message) {
   const p = document.createElement('p');
   p.innerText = message;;
   document.body.appendChild(p);
+}
+
+async function waitForSometime(seconds) {
+  seconds = seconds || 0;
+  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+}
+
+async function monitorPackets(localPC, remotePC) {
+  const localStats = await localPC.getStats();
+  const remoteStats = await remotePC.getStats();
+  const inBoundRTP = [...remoteStats.values()].find(({type}) => type === 'inbound-rtp');
+  const outBoutRTP = [...localStats.values()].find(({type}) => type === 'outbound-rtp');
+  document.getElementById('packetsSent').value = outBoutRTP?.packetsSent;
+  document.getElementById('packetsReceived').value = inBoundRTP?.packetsReceived;
 }
 
 const video_constraints = document.getElementById('video_constraints');
@@ -40,25 +59,9 @@ document.getElementById('negotiate').onclick = async function () {
   const { remoteStream, localPC, remotePC } = await negotiate(localVideoTrack);
   remote_video.srcObject = remoteStream;
 
-  const localStats1 = await localPC.getStats();
-  const remoteStats1 = await remotePC.getStats();
-
-  await waitForSometime(4);
-
-  const localStats2 = await localPC.getStats();
-  const remoteStats2 = await remotePC.getStats();
-
-  console.log('localStats1', Array.from(localStats1.values()));
-  console.log('localStats2', Array.from(localStats2.values()));
-  console.log('remoteStats1', Array.from(remoteStats1.values()));
-  console.log('remoteStats2', Array.from(remoteStats2.values()));
+  // update packets sent and received on PCs
+  setInterval(() => monitorPackets(localPC, remotePC), 1000);
 };
-
-
-async function waitForSometime(seconds) {
-  seconds = seconds || 0;
-  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
-}
 
 // negotiate
 // 1) creates peer connections
