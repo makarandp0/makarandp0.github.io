@@ -1,0 +1,69 @@
+<html>
+  <head>
+    <style>
+    </style>
+  </head>
+  <body>
+    <h2> Desktop Safari <a href="https://bugs.webkit.org/show_bug.cgi?id=210259">Issue 1052353</a>: stopping cloned track stops original <h2>
+    <br>
+    <button id="step1">Step 1: Render audio stream track</button>
+    <br>
+    <div id='original'></div>
+    <br>
+    <button id="step2">Step 2: Clone and Render Cloned Track</button>
+    <br>
+    <div id='cloned'></div>
+    <br>
+    <button id="step3">Step 3: Stop the cloned Stream</button>
+    <br>
+
+    <script>
+    function log(message) {
+      console.log(message);
+      const p = document.createElement('p');
+      p.innerText = message;;
+      document.body.appendChild(p);
+    }
+
+    function renderTrack(mediaStreamTrack, container, isClone = false) {
+      const trackContainer = document.createElement('div');
+      container.appendChild(trackContainer);
+
+      // render the track in media element
+      const mediaElement = document.createElement(mediaStreamTrack.kind)
+      trackContainer.appendChild(mediaElement);
+
+      const trackStream = new MediaStream([mediaStreamTrack]);
+      mediaElement.autoplay = true;
+      mediaElement.controls = true;
+      mediaElement.srcObject = trackStream;
+    }
+
+    function main() {
+      let audioTrack = null;
+      let clonedTrack = null;
+      const audioContainer = document.getElementById('original');
+      document.getElementById('step1').onclick = async () => {
+        const userMediaStream  = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        audioTrack = userMediaStream.getTracks()[0];
+        renderTrack(audioTrack, audioContainer);
+      };
+
+      const cloneContainer = document.getElementById('cloned');
+      document.getElementById('step2').onclick = async () => {
+        clonedTrack = audioTrack.clone();
+        renderTrack(clonedTrack, cloneContainer);
+      };
+
+      document.getElementById('step3').onclick = async () => {
+        clonedTrack.stop();
+        log('Step 4: Expected: original audio track should not get stopped.');
+        log('          Actual: On Desktop Safari: original audio track gets stopped.');
+      }
+    }
+
+    main();
+    </script>
+
+  </body>
+</html>
