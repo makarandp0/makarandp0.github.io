@@ -25,9 +25,9 @@ export function demo(Video) {
   // process parameters.
   var urlParams = new URLSearchParams(window.location.search);
   let token = urlParams.get('token');
-  if (!token && location.host === "makarandp0.github.io") {
-    createElement(document.body, { type: 'h1', classNames: ['badError'] }).textContent = 'token is very required parameter';
-    return;
+  const tokenUrl = urlParams.get('tokenUrl');
+  if (!token || !tokenUrl) {
+    createElement(document.body, { type: 'h1', classNames: ['badError'] }).textContent = 'token or tokenUrl is very required parameter';
   }
 
   roomName.value = urlParams.get('room');
@@ -49,9 +49,8 @@ export function demo(Video) {
   * @param {string} [identity] identity to use, if not specified server generates random one.
   * @returns {Promise<{identity: string, token: string}>}
   */
-  async function getRoomCredentials(identity) {
-    const tokenUrl = '/token' + (identity ? '?identity=' + identity : '');
-    const response = await fetch(tokenUrl);
+  async function getRoomCredentials(tokenUrl) {
+    const response = await fetch(tokenUrl); // http://localhost:3000/token
     return response.json();
   }
 
@@ -279,6 +278,7 @@ export function demo(Video) {
       attachDetachBtn.click();
     }
     updateStats('initial');
+    return trackContainer;
   }
 
   // Detach given track from the DOM.
@@ -389,8 +389,8 @@ export function demo(Video) {
     updateControls(false);
     roomChangeMonitor.emitRoomChange(null);
     if (!token) {
-      console.log('getting token');
-      token = (await getRoomCredentials()).token;
+      console.log('getting token from: ', tokenUrl);
+      token = (await getRoomCredentials(tokenUrl)).token;
     } else {
       console.log('Using Token:', token);
     }
@@ -461,16 +461,35 @@ export function demo(Video) {
   }
 
   btnPreviewAudio.onclick = async () => {
-  // eslint-disable-next-line require-atomic-updates
-    const localAudioTrack = await Video.createLocalAudioTrack();
-    renderTrack(localAudioTrack, localAudioTrackContainer, true);
+    const localTrack = await Video.createLocalAudioTrack();
+    const trackContainer = renderTrack(localTrack, localAudioTrackContainer, true);
     console.log('localTracks.length:', localTracks.length);
+
+    createButton('clone', trackContainer, () => {
+      const clonedMSTrack = localTrack.mediaStreamTrack.clone();
+      const cloneBtn = createButton(' stop clone', trackContainer, () => {
+        clonedMSTrack.stop();
+        cloneBtn.btn.remove();
+      });
+      const cloned = new Video.LocalAudioTrack(clonedMSTrack);
+      renderTrack(cloned, localAudioTrackContainer, true);
+    });
   };
 
   btnPreviewVideo.onclick = async () => {
-    const localVideoTrack = await Video.createLocalVideoTrack();
-    renderTrack(localVideoTrack, localVideoTrackContainer, true);
+    const localTrack = await Video.createLocalVideoTrack();
+    const trackContainer = renderTrack(localTrack, localVideoTrackContainer, true);
     console.log('localTracks.length:', localTracks.length);
+
+    createButton('clone', trackContainer, () => {
+      const clonedMSTrack = localTrack.mediaStreamTrack.clone();
+      const cloneBtn = createButton(' stop clone', trackContainer, () => {
+        clonedMSTrack.stop();
+        cloneBtn.btn.remove();
+      });
+      const cloned = new Video.LocalVideoTrack(clonedMSTrack);
+      renderTrack(cloned, localVideoTrackContainer, true);
+    });
   };
 
   function log(message) {

@@ -2,11 +2,13 @@
   <script>
     window.mak = { audio: [] };
     function getStreamAndTrack(frequency = 100) {
-      console.log('1. Construct AudioContext')
-      const audioContext = typeof AudioContext !== 'undefined'
-        ? new AudioContext()
-        : new webkitAudioContext()
+      console.log('1. Construct AudioContext');
+      window.tempAudioContext = window.tempAudioContext || typeof AudioContext !== 'undefined' ? new AudioContext() : new webkitAudioContext()
+      const audioContext = window.tempAudioContext;
 
+      if (!audioContext) {
+        console.error('audioContext is null');
+      }
       console.log('2. Create OscillatorNode')
       const oscillatorNode = audioContext.createOscillator()
 
