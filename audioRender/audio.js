@@ -1,6 +1,9 @@
+/* eslint-disable no-undefined */
 /* eslint-disable no-console */
 
 import { Waveform } from './waveform.js';
+const logDiv = document.getElementById('log');
+const demoDiv = document.getElementById('demo');
 
 function routeTrack(localTrack) {
   const localPC = new RTCPeerConnection();
@@ -74,6 +77,24 @@ function getOscillatorStream(frequency = 100) {
   return mediaStreamDestinationNode.stream;
 }
 
+function createElement(container, { type, id, classNames }) {
+  const el = document.createElement(type);
+  if (id) {
+    el.id = id;
+  }
+  if (classNames) {
+    el.classList.add(...classNames);
+  }
+
+  container.appendChild(el);
+  return el;
+}
+
+function createDiv(container, divClass, id) {
+  return createElement(container, { type: 'div', classNames: [divClass], id });
+}
+
+
 function createButton(text, container, onClick) {
   const btn = document.createElement('button');
   btn.innerHTML = text;
@@ -97,7 +118,7 @@ function playAudioTrack(track) {
   audio.controls = true;
   audio.srcObject = stream;
   newDiv.appendChild(audio);
-  document.body.appendChild(newDiv);
+  demoDiv.appendChild(newDiv);
   createButton('close', newDiv, () => {
     audio.srcObject = null;
     console.log('10. Remove <audio> element');
@@ -107,10 +128,27 @@ function playAudioTrack(track) {
   });
 }
 
+// styleMap uses the values to decide the style.
+function createLabeledStat(container, label, { id, className, useValueToStyle = false }) {
+  const el = createElement(container, { type: 'p', id, classNames: [className, 'labeledStat'] });
+  let lastText = null;
+  return {
+    setText: text => {
+      if (useValueToStyle && lastText !== null) {
+        el.classList.remove(`${className}_${lastText}`);
+      }
+      el.textContent = label + ': ' + text;
+      if (useValueToStyle) {
+        el.classList.add(`${className}_${text}`);
+        lastText = text;
+      }
+    }
+  };
+}
+
 function renderAudioTrack(track) {
   const stream = new MediaStream();
   stream.addTrack(track);
-
 
   var container = document.createElement('div');
   const audioElement = document.createElement('audio');
@@ -129,44 +167,115 @@ function renderAudioTrack(track) {
     container.remove();
   });
 
-  document.body.appendChild(container);
+  createButton('update', container, () => {
+    updateStats();
+  });
+
+  var statsContainer = createDiv(container, 'trackStats');
+  const readyState = createLabeledStat(statsContainer, 'readyState', { className: 'readyState', useValueToStyle: true });
+  const enabled = createLabeledStat(statsContainer, 'enabled', { className: 'enabled', useValueToStyle: true });
+  const muted = createLabeledStat(statsContainer, 'muted', { className: 'muted', useValueToStyle: true });
+
+  track.addEventListener('ended', () => updateStats('ended'));
+  track.addEventListener('mute', () => updateStats('mute'));
+  track.addEventListener('unmute', () => updateStats('unmute'));
+
+  function updateStats(event) {
+    log(`${track.sid || track.id} got: ${event}`);
+    readyState.setText(track.readyState);
+    enabled.setText(track.enabled);
+    muted.setText(track.muted);
+  }
+  updateStats();
+  demoDiv.appendChild(container);
   return audioElement;
 }
 
+
+let logClearBtn;
+let realLogDiv;
+function log(message) {
+  if (!logClearBtn) {
+    logClearBtn = createButton('clear', logDiv, () => {
+      realLogDiv.innerHTML = '';
+    });
+    realLogDiv = createDiv(logDiv);
+  }
+
+  message = (new Date()).toISOString() + ':' + message;
+  console.log(message);
+  realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message  + '</p>';
+  realLogDiv.scrollTop = realLogDiv.scrollHeight;
+}
+
+function listenForVisibilityChange() {
+  // Set the name of the hidden property and the change event for visibility
+  let hidden;
+  let visibilityChange;
+  if (typeof document.hidden !== 'undefined') { // Opera 12.10 and Firefox 18 and later support
+    hidden = 'hidden';
+    visibilityChange = 'visibilitychange';
+  } else if (typeof document.msHidden !== 'undefined') {
+    hidden = 'msHidden';
+    visibilityChange = 'msvisibilitychange';
+  } else if (typeof document.webkitHidden !== 'undefined') {
+    hidden = 'webkitHidden';
+    visibilityChange = 'webkitvisibilitychange';
+  }
+
+  log(`Will use: ${hidden}, ${visibilityChange}`);
+  function handleVisibilityChange() {
+    if (document[hidden]) {
+      log('document was hidden');
+    } else {
+      log('document was visible');
+    }
+  }
+  // Warn if the browser doesn't support addEventListener or the Page Visibility API
+  if (typeof document.addEventListener === 'undefined' || hidden === undefined) {
+    log('This demo requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.');
+  } else {
+    // Handle page visibility change
+    document.addEventListener(visibilityChange, handleVisibilityChange, false);
+  }
+}
+
+
 let localAudioTrack;
 let remoteStreamDetails;
-const body = document.body;
 export function demo() {
-  console.log('version 1');
-  createButton('GetLocalAudio', body, async () => {
+  console.log('version 2');
+  createButton('GetLocalAudio', demoDiv, async () => {
     localAudioTrack = await getMediaStreamTrack(false, 10);
   });
 
-  createButton('PlayLocalTrack', body, () => {
+  createButton('PlayLocalTrack', demoDiv, () => {
     playAudioTrack(localAudioTrack);
   });
 
-  createButton('RenderLocalTrack', body, () => {
+  createButton('RenderLocalTrack', demoDiv, () => {
     renderAudioTrack(localAudioTrack);
   });
 
-  createButton('GetRemoteAudio', body, async () => {
+  createButton('GetRemoteAudio', demoDiv, async () => {
     remoteStreamDetails = await routeTrack(localAudioTrack);
   });
 
-  createButton('PlayRemoteTrack', body, () => {
+  createButton('PlayRemoteTrack', demoDiv, () => {
     const remoteAudioTrack = remoteStreamDetails.remoteTrack;
     playAudioTrack(remoteAudioTrack);
   });
 
-  createButton('RenderRemoteTrack', body, () => {
+  createButton('RenderRemoteTrack', demoDiv, () => {
     const remoteAudioTrack = remoteStreamDetails.remoteTrack;
     renderAudioTrack(remoteAudioTrack);
   });
 
-  createButton('ClosePCs', body, () => {
+  createButton('ClosePCs', demoDiv, () => {
     remoteStreamDetails.localPC.close();
     remoteStreamDetails.remotePC.close();
   });
+  log('done creating buttons');
+  listenForVisibilityChange();
 }
 

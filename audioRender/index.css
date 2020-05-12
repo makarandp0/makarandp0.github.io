@@ -1,5 +1,26 @@
 @import url(https://fonts.googleapis.com/css?family=Share+Tech+Mono);
 
+#main {
+  display: flex
+}
+
+.labeledStat {
+  margin: 2px;
+}
+
+.enabled.enabled_false,
+.muted.muted_true {
+  background: yellow;
+}
+
+.readyState.readyState_live {
+  background: lightgreen;
+}
+
+.readyState.readyState_ended {
+  background: red;
+}
+
 .canvasContainer {
   width: 250px;
   height: 150px;
