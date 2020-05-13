@@ -134,6 +134,7 @@ function log(message) {
   realLogDiv.scrollTop = realLogDiv.scrollHeight;
 }
 
+let localAudioTrack;
 function listenForVisibilityChange() {
   // Set the name of the hidden property and the change event for visibility
   let hidden;
@@ -156,6 +157,9 @@ function listenForVisibilityChange() {
     } else {
       log('document was visible');
     }
+    if (localAudioTrack) {
+      log(`visibilityState = ${document.visibilityState}, muted = ${localAudioTrack.muted} readyState = ${localAudioTrack.readyState}`);
+    }
   }
   // Warn if the browser doesn't support addEventListener or the Page Visibility API
   if (typeof document.addEventListener === 'undefined' || hidden === undefined) {
@@ -166,8 +170,6 @@ function listenForVisibilityChange() {
   }
 }
 
-
-let localAudioTrack;
 export function demo() {
   createButton('GetLocalAudio', demoDiv, async () => {
     const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
