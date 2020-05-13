@@ -3,6 +3,7 @@
 /* eslint-disable quotes */
 'use strict';
 
+
 // const Waveform = require('../../examples/util/waveform');
 // var Video = require('twilio-video');
 import { Waveform } from './waveform.js';
@@ -43,6 +44,22 @@ export function demo(Video) {
 
   var activeRoom;
   const localTracks = [];
+
+  let logClearBtn = null;
+  let realLogDiv = null;
+  function log(message) {
+    if (!logClearBtn) {
+      logClearBtn = createButton('clear log', logDiv, () => {
+        realLogDiv.innerHTML = '';
+      });
+      realLogDiv = createDiv(logDiv);
+    }
+
+    message = (new Date()).toISOString() + ':' + message;
+    console.log(message);
+    realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message  + '</p>';
+    realLogDiv.scrollTop = realLogDiv.scrollHeight;
+  }
 
   /**
   * Get the Room credentials from the server.
@@ -389,8 +406,12 @@ export function demo(Video) {
     updateControls(false);
     roomChangeMonitor.emitRoomChange(null);
     if (!token) {
-      console.log('getting token from: ', tokenUrl);
-      token = (await getRoomCredentials(tokenUrl)).token;
+      try {
+        log(`getting token from: ${tokenUrl}`);
+        token = (await getRoomCredentials(tokenUrl)).token;
+      } catch (err) {
+        log('failed to obtain token');
+      }
     } else {
       console.log('Using Token:', token);
     }
@@ -405,6 +426,7 @@ export function demo(Video) {
     if (autoJoin.checked) {
       btnJoin.onclick();
     }
+    listenForVisibilityChange();
   }());
 
 
@@ -492,11 +514,38 @@ export function demo(Video) {
     });
   };
 
-  function log(message) {
-    console.log('QuickStart: ' + message);
-    logDiv.innerHTML += '<p>&gt;&nbsp;' + message + '</p>';
-    logDiv.scrollTop = logDiv.scrollHeight;
+  function listenForVisibilityChange() {
+    // Set the name of the hidden property and the change event for visibility
+    let hidden;
+    let visibilityChange;
+    if (typeof document.hidden !== 'undefined') { // Opera 12.10 and Firefox 18 and later support
+      hidden = 'hidden';
+      visibilityChange = 'visibilitychange';
+    } else if (typeof document.msHidden !== 'undefined') {
+      hidden = 'msHidden';
+      visibilityChange = 'msvisibilitychange';
+    } else if (typeof document.webkitHidden !== 'undefined') {
+      hidden = 'webkitHidden';
+      visibilityChange = 'webkitvisibilitychange';
+    }
+
+    log(`Will use: ${hidden}, ${visibilityChange}`);
+    function handleVisibilityChange() {
+      if (document[hidden]) {
+        log('document was hidden');
+      } else {
+        log('document was visible');
+      }
+    }
+    // Warn if the browser doesn't support addEventListener or the Page Visibility API
+    if (typeof document.addEventListener === 'undefined' || hidden === undefined) {
+      log('This demo requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.');
+    } else {
+      // Handle page visibility change
+      document.addEventListener(visibilityChange, handleVisibilityChange, false);
+    }
   }
+
 
   // Leave Room.
   function leaveRoomIfJoined() {
