@@ -28,7 +28,7 @@ export function demo(Video) {
   var urlParams = new URLSearchParams(window.location.search);
   let token = urlParams.get('token');
   const tokenUrl = urlParams.get('tokenUrl');
-  if (!token || !tokenUrl) {
+  if (!token && !tokenUrl) {
     createElement(document.body, { type: 'h1', classNames: ['badError'] }).textContent = 'token or tokenUrl is very required parameter';
   }
 
@@ -68,7 +68,7 @@ export function demo(Video) {
   * @returns {Promise<{identity: string, token: string}>}
   */
   async function getRoomCredentials(tokenUrl) {
-    const response = await fetch(tokenUrl); // http://localhost:3000/token
+    const response = await fetch(tokenUrl); // /?tokenUrl=http://localhost:3000/token
     return response.json();
   }
 
