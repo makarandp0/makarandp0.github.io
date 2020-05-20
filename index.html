@@ -5,7 +5,7 @@
     <script>
       (async () => {
         try {
-        const response = await fetch('https://api.github.com/repos/makarandp0/makarandp0.github.io/contents/', { mode: 'no-cors' });
+        const response = await fetch('https://api.github.com/repos/makarandp0/makarandp0.github.io/contents/');
         const data = await response.json();
         let htmlString = '<ul>';
         for (let file of data) {
