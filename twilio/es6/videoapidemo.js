@@ -27,9 +27,23 @@ export function demo(Video) {
   // process parameters.
   var urlParams = new URLSearchParams(window.location.search);
   let token = urlParams.get('token');
-  const tokenUrl = urlParams.get('tokenUrl');
-  if (!token && !tokenUrl) {
+  let tokenUrl = null;
+
+  const { protocol, host, pathname } = window.location;
+  console.log({ protocol, host, pathname });
+
+  if (!token) {
     createElement(document.body, { type: 'h1', classNames: ['badError'] }).textContent = 'token or tokenUrl is very required parameter';
+  } else if (token.indexOf('http') >= 0) {
+    tokenUrl = token;
+    token = null;
+  } else if (token === 'default') {
+    tokenUrl =  `${protocol}//${host}/token`;
+    token = null;
+  } else {
+    // if real token is part of the url delete it.
+    urlParams.delete('token');
+    window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
   }
 
   roomName.value = urlParams.get('room');
@@ -37,11 +51,6 @@ export function demo(Video) {
   autoPublish.checked = !urlParams.has('noAutoPublish');
   autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
 
-  // remove token from the url params.
-  urlParams.delete('token');
-  const { protocol, host, pathname } = window.location;
-  console.log({ protocol, host, pathname });
-  window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
 
   var activeRoom;
   const localTracks = [];

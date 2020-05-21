@@ -9,7 +9,10 @@ module.exports = {
   },
   devtool: 'inline-source-map',
   devServer: {
-    https: true,
+    https: false,
     contentBase: './dist',
+    proxy: {
+      '/token': 'http://localhost:3000'
+    }
   }
 };
