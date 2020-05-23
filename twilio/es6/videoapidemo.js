@@ -215,6 +215,25 @@ export function demo(Video) {
     });
   }
 
+  function renderTrackPublication(trackPublication, container) {
+    const trackContainerId = "trackPublication_" + trackPublication.trackSid;
+    const publicationContainer = createDiv(container, 'publication', trackContainerId);
+    const name = createElement(publicationContainer, { type: 'h2', classNames: ['participantName'] });
+    name.innerHTML = trackPublication.kind + ":" + trackPublication.trackSid;
+
+    if (trackPublication.isSubscribed) {
+      renderTrack(trackPublication.track, publicationContainer);
+    } else {
+      console.log('not subscribed:', trackPublication);
+    }
+    trackPublication.on('subscribed', function(track) {
+      log('Subscribed to ' + trackPublication.kind + ' track');
+      renderTrack(track, publicationContainer);
+    });
+    trackPublication.on('unsubscribed', track => detachTrack(track, publicationContainer));
+    return publicationContainer;
+  }
+
   // Attach the Track to the DOM.
   function renderTrack(track, container, isLocal) {
     console.log(`track.sid:${track.sid}, track.id:${track.id}`);
@@ -231,6 +250,7 @@ export function demo(Video) {
       createButton('disable', controlContainer, () => track.disable());
       createButton('enable', controlContainer, () => track.enable());
       createButton('stop', controlContainer, () => track.stop());
+      createButton('msstop', controlContainer, () => track.mediaStreamTrack.stop());
 
       let trackPublication = null;
       let unPublishBtn = null;
@@ -325,21 +345,24 @@ export function demo(Video) {
 
   // A new RemoteTrack was published to the Room.
   function trackPublished(publication, container) {
-    if (publication.isSubscribed) {
-      renderTrack(publication.track, container);
-    } else {
-      console.log('not subscribed:', publication);
-    }
-    publication.on('subscribed', function(track) {
-      log('Subscribed to ' + publication.kind + ' track');
-      renderTrack(track, container);
-    });
-    publication.on('unsubscribed', track => detachTrack(track, container));
+    renderTrackPublication(publication, container);
+    // if (publication.isSubscribed) {
+    //   renderTrack(publication.track, container);
+    // } else {
+    //   console.log('not subscribed:', publication);
+    // }
+    // publication.on('subscribed', function(track) {
+    //   log('Subscribed to ' + publication.kind + ' track');
+    //   renderTrack(track, container);
+    // });
+    // publication.on('unsubscribed', track => detachTrack(track, container));
   }
 
   // A RemoteTrack was unpublished from the Room.
-  function trackUnpublished(publication) {
-    log(publication.kind + ' track was unpublished.');
+  function trackUnpublished(publication, container) {
+    const publicationDivId = "trackPublication_" + publication.trackSid;
+    const trackContainer = document.getElementById(publicationDivId);
+    container.removeChild(trackContainer);
   }
 
   // A new RemoteParticipant joined the Room
@@ -356,7 +379,7 @@ export function demo(Video) {
     } else {
       participant.tracks.forEach(publication => trackPublished(publication, participantMediaDiv));
       participant.on('trackPublished', publication => trackPublished(publication, participantMediaDiv));
-      participant.on('trackUnpublished', trackUnpublished);
+      participant.on('trackUnpublished', publication => trackUnpublished(publication, participantMediaDiv));
     }
   }
 
