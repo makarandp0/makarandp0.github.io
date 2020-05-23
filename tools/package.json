@@ -1,0 +1,15 @@
+{
+  "name": "tools",
+  "version": "1.0.0",
+  "description": "assorted tools",
+  "main": "index.js",
+  "dependencies": {
+    "csv2json": "^2.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
