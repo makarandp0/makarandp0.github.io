@@ -113,7 +113,7 @@ export function demo() {
     await playLocalAndRemoteTracks(syntheticTrack, 'Synthetic Audio');
   });
 
-  createButton('Video', demoDiv, async () => {
+  createButton('Local Video', demoDiv, async () => {
     const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
     const localTrack = mediaStream.getTracks()[0];
     await playLocalAndRemoteTracks(localTrack, 'GUM Video');
