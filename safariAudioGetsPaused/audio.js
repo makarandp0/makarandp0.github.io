@@ -31,16 +31,18 @@ function createDiv(container, divClass, id) {
 }
 
 
-function renderTrack(track) {
+function renderTrack(track, trackName) {
   const stream = new MediaStream();
   stream.addTrack(track);
 
   var container = createDiv(demoDiv, track.kind === 'video' ? 'videoContainer' : 'audioContainer');
-  const mediaElement = document.createElement(track.kind === 'video' ? 'video' : 'audio');
+  const name = createElement(container, { type: 'h2' });
+  name.innerHTML = trackName;
+
+  const mediaElement = createElement(container, { type: track.kind === 'video' ? 'video' : 'audio' });
   mediaElement.autoplay = true;
   mediaElement.controls = true;
   mediaElement.srcObject = stream;
-  container.appendChild(mediaElement);
 
   const readyState = createLabeledStat(container, 'readyState', { className: 'readyState', useValueToStyle: true });
   const enabled = createLabeledStat(container, 'enabled', { className: 'enabled', useValueToStyle: true });
@@ -54,7 +56,7 @@ function renderTrack(track) {
   mediaElement.addEventListener('play', () => updateStats('play'));
 
   function updateStats(event) {
-    log(`${track.sid || track.id} got: ${event}`);
+    log(`${trackName} got: ${event}`);
     readyState.setText(track.readyState);
     enabled.setText(track.enabled);
     muted.setText(track.muted);
@@ -81,40 +83,40 @@ function renderTrack(track) {
 }
 
 
-async function playLocalAndRemoteTracks(localTrack) {
+async function playLocalAndRemoteTracks(localTrack, trackType) {
   // playing local track
-  renderTrack(localTrack);
+  renderTrack(localTrack, `${trackType}: local`);
 
   log('negotiating...');
   const { remoteTracks } = await negotiate([localTrack]);
   log('done negotiating...');
 
   // playing remote track
-  renderTrack(remoteTracks[0]);
+  renderTrack(remoteTracks[0], `${trackType}: remote`);
 }
 
 export function demo() {
   createButton('Local Audio', demoDiv, async () => {
     const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     const localTrack = mediaStream.getTracks()[0];
-    await playLocalAndRemoteTracks(localTrack);
+    await playLocalAndRemoteTracks(localTrack, 'GUM Audio');
   });
 
   createButton('Synthetic Audio', demoDiv, async () => {
     const syntheticTrack = generateAudioTrack();
-    await playLocalAndRemoteTracks(syntheticTrack);
+    await playLocalAndRemoteTracks(syntheticTrack, 'Synthetic Audio');
   });
 
   createButton('Video', demoDiv, async () => {
     const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
     const localTrack = mediaStream.getTracks()[0];
-    await playLocalAndRemoteTracks(localTrack);
+    await playLocalAndRemoteTracks(localTrack, 'GUM Video');
   });
 
   createButton('Synthetic Video', demoDiv, async () => {
     const canvas = document.createElement('canvas');
     const syntheticTrack = generateVideoTrack(canvas, 'Yo');
-    await playLocalAndRemoteTracks(syntheticTrack);
+    await playLocalAndRemoteTracks(syntheticTrack, 'Synthetic Video');
   });
 
 
