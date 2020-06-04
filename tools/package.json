@@ -4,7 +4,8 @@
   "description": "assorted tools",
   "main": "index.js",
   "dependencies": {
-    "csv2json": "^2.0.2"
+    "csv2json": "^2.0.2",
+    "json2csv": "^5.0.1"
   },
   "devDependencies": {},
   "scripts": {

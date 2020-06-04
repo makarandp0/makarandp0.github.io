@@ -26,16 +26,6 @@ const MAX_ALLOWED_SESSION_DURATION = 14400;
 var app = express();
 app.use(cors({ origin: true }));
 
-// Set up the path for the quickstart.
-var appPath = path.join(__dirname, '../dist');
-app.use('/', express.static(appPath));
-
-// /**
-//  * Default to the Quick Start application.
-//  */
-// app.get('/', function(request, response) {
-//   response.redirect('/quickstart');
-// });
 
 /**
  * Generate an Access Token for a chat application user - it generates a random

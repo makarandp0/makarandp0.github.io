@@ -85,7 +85,7 @@ div.videoContainer {
 
 div#remote-participants h6 {
   /* position: absolute; */
-  font-size: 25px;
+  /* font-size: 25px; */
   background-color: rgba(0, 0, 0, 0.4);
   color: white;
   max-width: calc((100% - 16px) - 0.5em);

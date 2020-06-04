@@ -57,7 +57,8 @@ export function demo(Video) {
 
   let logClearBtn = null;
   let realLogDiv = null;
-  function log(message) {
+  function log(...args) {
+
     if (!logClearBtn) {
       logClearBtn = createButton('clear log', logDiv, () => {
         realLogDiv.innerHTML = '';
@@ -65,8 +66,9 @@ export function demo(Video) {
       realLogDiv = createDiv(logDiv);
     }
 
-    message = (new Date()).toISOString() + ':' + message;
-    console.log(message);
+    console.log(args);
+    const message = [...args].reduce((acc, arg) => acc + ", " + arg, "");
+    // message = (new Date()).toISOString() + ':' + message;
     realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message  + '</p>';
     realLogDiv.scrollTop = realLogDiv.scrollHeight;
   }
@@ -170,6 +172,7 @@ export function demo(Video) {
     };
   }
 
+
   function createTrackStats(track, container) {
     var statsContainer = createDiv(container, 'trackStats');
 
@@ -181,13 +184,22 @@ export function demo(Video) {
     const bytes = createLabeledStat(statsContainer, 'bytes', { className: 'bytes', useValueToStyle: true });
     bytes.setText('0');
 
+    function listenOnMSTrack(msTrack) {
+      msTrack.addEventListener('ended', () => updateStats('ended'));
+      msTrack.addEventListener('mute', () => updateStats('mute'));
+      msTrack.addEventListener('unmute', () => updateStats('unmute'));
+    }
+
     track.on('disabled', () => updateStats('disabled'));
     track.on('enabled', () => updateStats('enabled'));
-    track.on('stopped', () => updateStats('stopped'));
-    track.on('started', () => updateStats('started'));
-    track.mediaStreamTrack.addEventListener('ended', () => updateStats('ended'));
-    track.mediaStreamTrack.addEventListener('mute', () => updateStats('mute'));
-    track.mediaStreamTrack.addEventListener('unmute', () => updateStats('unmute'));
+    track.on('stopped', () => {
+      updateStats('stopped');
+    });
+
+    track.on('started', () => {
+      updateStats('started');
+      listenOnMSTrack(track.mediaStreamTrack);
+    });
 
     function updateStats(event, byteUpdate) {
       if (event === 'bytes') {
@@ -218,8 +230,10 @@ export function demo(Video) {
   function renderTrackPublication(trackPublication, container) {
     const trackContainerId = "trackPublication_" + trackPublication.trackSid;
     const publicationContainer = createDiv(container, 'publication', trackContainerId);
-    const name = createElement(publicationContainer, { type: 'h2', classNames: ['participantName'] });
-    name.innerHTML = trackPublication.kind + ":" + trackPublication.trackSid;
+    const trackKind = createElement(publicationContainer, { type: 'h2', classNames: ['participantName'] });
+    const trackSid = createElement(publicationContainer, { type: 'h6', classNames: ['participantName'] });
+    trackKind.innerHTML = trackPublication.kind + ": published";
+    trackSid.innerHTML = trackPublication.trackSid;
 
     if (trackPublication.isSubscribed) {
       renderTrack(trackPublication.track, publicationContainer);
@@ -318,7 +332,20 @@ export function demo(Video) {
         }
         createButton('pause', mediaControls, () => audioVideoElement.pause());
         createButton('play', mediaControls, () => audioVideoElement.play());
+        createButton('update', mediaControls, () => updateMediaElementState('update'));
+        const isPlaying = createLabeledStat(mediaControls, 'playing', { className: 'enabled', useValueToStyle: true });
+        const volume = createLabeledStat(mediaControls, 'volume', { className: 'bytes', useValueToStyle: true });
+        // eslint-disable-next-line no-inner-declarations
+        function updateMediaElementState(event) {
+          log(`${track.sid || track.id} got: ${event}`);
+          isPlaying.setText(!audioVideoElement.paused);
+          volume.setText(audioVideoElement.volume);
+        }
+
+        audioVideoElement.addEventListener('pause', () => updateMediaElementState('pause'));
+        audioVideoElement.addEventListener('play', () => updateMediaElementState('play'));
         attachDetachBtn.text('detach');
+        updateMediaElementState('initial');
       }
     });
     if (autoAttach.checked) {
@@ -516,19 +543,23 @@ export function demo(Video) {
   }
 
   btnPreviewAudio.onclick = async () => {
-    const localTrack = await Video.createLocalAudioTrack();
-    const trackContainer = renderTrack(localTrack, localAudioTrackContainer, true);
-    console.log('localTracks.length:', localTracks.length);
+    try {
+      const localTrack = await Video.createLocalAudioTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true });
+      const trackContainer = renderTrack(localTrack, localAudioTrackContainer, true);
+      console.log('localTracks.length:', localTracks.length);
 
-    createButton('clone', trackContainer, () => {
-      const clonedMSTrack = localTrack.mediaStreamTrack.clone();
-      const cloneBtn = createButton(' stop clone', trackContainer, () => {
-        clonedMSTrack.stop();
-        cloneBtn.btn.remove();
+      createButton('clone', trackContainer, () => {
+        const clonedMSTrack = localTrack.mediaStreamTrack.clone();
+        const cloneBtn = createButton(' stop clone', trackContainer, () => {
+          clonedMSTrack.stop();
+          cloneBtn.btn.remove();
+        });
+        const cloned = new Video.LocalAudioTrack(clonedMSTrack);
+        renderTrack(cloned, localAudioTrackContainer, true);
       });
-      const cloned = new Video.LocalAudioTrack(clonedMSTrack);
-      renderTrack(cloned, localAudioTrackContainer, true);
-    });
+    } catch (err) {
+      log('err: ', err);
+    }
   };
 
   btnPreviewVideo.onclick = async () => {

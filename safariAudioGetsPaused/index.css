@@ -1,0 +1,54 @@
+@import url(https://fonts.googleapis.com/css?family=Share+Tech+Mono);
+
+#main {
+  display: flex
+}
+
+#log {
+  border: solid black 2px;
+  width: 100%;
+}
+
+button {
+  height: 4em;
+  margin: 5px;
+}
+
+.audioContainer {
+  border: solid blue 1px;
+}
+
+video {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.videoContainer {
+  margin: 10px;
+  width: 300px;
+  border: solid green 1px;
+}
+
+.labeledStat {
+  margin: 2px;
+}
+
+.paused.paused_true,
+.enabled.enabled_false,
+.muted.muted_true {
+  background: yellow;
+}
+
+.readyState.readyState_live {
+  background: lightgreen;
+}
+
+.readyState.readyState_ended {
+  background: red;
+}
+
+.canvasContainer {
+  width: 250px;
+  height: 150px;
+  background-color: #aaa;
+}
