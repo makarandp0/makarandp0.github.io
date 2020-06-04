@@ -68,7 +68,7 @@ function renderTrack(track, trackName) {
   track.addEventListener('mute', onTrackMute);
   track.addEventListener('unmute', onTrackUnmute);
   mediaElement.addEventListener('pause', onPause);
-  mediaElement.addEventListener('play', () => onPlay);
+  mediaElement.addEventListener('play', onPlay);
   document.addEventListener('visibilitychange', onVisibilityChange, false);
 
   createButton('close', container, () => {
@@ -80,7 +80,7 @@ function renderTrack(track, trackName) {
     track.removeEventListener('mute', onTrackMute);
     track.removeEventListener('unmute', onTrackUnmute);
     mediaElement.removeEventListener('pause', onPause);
-    mediaElement.removeEventListener('play', () => onPlay);
+    mediaElement.removeEventListener('play', onPlay);
   });
 
   createButton('update', container, () => updateStats('update'));
