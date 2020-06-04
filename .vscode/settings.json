@@ -5,6 +5,7 @@
     "ontrack",
     "synthetictrack",
     "syntheticvideo",
-    "videoapidemo"
+    "videoapidemo",
+    "visibilitychange"
   ]
 }

@@ -49,12 +49,6 @@ function renderTrack(track, trackName) {
   const muted = createLabeledStat(container, 'muted', { className: 'muted', useValueToStyle: true });
   const paused = createLabeledStat(container, 'paused', { className: 'paused', useValueToStyle: true });
 
-  track.addEventListener('ended', () => updateStats('ended'));
-  track.addEventListener('mute', () => updateStats('mute'));
-  track.addEventListener('unmute', () => updateStats('unmute'));
-  mediaElement.addEventListener('pause', () => updateStats('pause'));
-  mediaElement.addEventListener('play', () => updateStats('play'));
-
   function updateStats(event) {
     log(`${trackName} got: ${event}`);
     readyState.setText(track.readyState);
@@ -63,25 +57,37 @@ function renderTrack(track, trackName) {
     paused.setText(mediaElement.paused);
   }
 
+  const onVisibilityChange = () => updateStats('visibilityChange');
+  const onTrackEnded = () => updateStats('ended');
+  const onTrackMute = () => updateStats('mute');
+  const onTrackUnmute = () => updateStats('unmute');
+  const onPause = () => updateStats('pause');
+  const onPlay = () => updateStats('play');
+
+  track.addEventListener('ended', onTrackEnded);
+  track.addEventListener('mute', onTrackMute);
+  track.addEventListener('unmute', onTrackUnmute);
+  mediaElement.addEventListener('pause', onPause);
+  mediaElement.addEventListener('play', () => onPlay);
+  document.addEventListener('visibilitychange', onVisibilityChange, false);
+
   createButton('close', container, () => {
     mediaElement.srcObject = null;
     mediaElement.remove();
     container.remove();
-  });
-  createButton('update', container, () => {
-    updateStats('update');
-  });
-  createButton('pause', container, () => {
-    mediaElement.pause();
-  });
-  createButton('play', container, () => {
-    mediaElement.play();
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    track.removeEventListener('ended', onTrackEnded);
+    track.removeEventListener('mute', onTrackMute);
+    track.removeEventListener('unmute', onTrackUnmute);
+    mediaElement.removeEventListener('pause', onPause);
+    mediaElement.removeEventListener('play', () => onPlay);
   });
 
+  createButton('update', container, () => updateStats('update'));
+  createButton('pause', container, () =>  mediaElement.pause());
+  createButton('play', container, () => mediaElement.play());
   updateStats('update');
-  document.addEventListener('visibilitychange', () => updateStats('visibilityChange'), false);
 }
-
 
 async function playLocalAndRemoteTracks(localTrack, trackType) {
   // playing local track
