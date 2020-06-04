@@ -3,6 +3,8 @@
     "jsutilmodules",
     "onicecandidate",
     "ontrack",
+    "synthetictrack",
+    "syntheticvideo",
     "videoapidemo"
   ]
 }

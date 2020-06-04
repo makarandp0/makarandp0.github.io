@@ -6,6 +6,8 @@ import createButton from '../jsutilmodules/button.js';
 import createLabeledStat from '../jsutilmodules/labeledstat.js';
 import { createLog, log } from '../jsutilmodules/log.js';
 import negotiate from '../jsutilmodules/negotiate.js';
+import generateAudioTrack from '../jsutilmodules/syntheticaudio.js';
+import generateVideoTrack from '../jsutilmodules/syntheticvideo.js';
 
 const logDiv = document.getElementById('log');
 const demoDiv = document.getElementById('demo');
@@ -79,10 +81,7 @@ function renderTrack(track) {
 }
 
 
-async function getAndPlayLocalAndRemoteTrack(audio) {
-  const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: audio, video: !audio });
-  const localTrack = mediaStream.getTracks()[0];
-
+async function playLocalAndRemoteTracks(localTrack) {
   // playing local track
   renderTrack(localTrack);
 
@@ -95,12 +94,29 @@ async function getAndPlayLocalAndRemoteTrack(audio) {
 }
 
 export function demo() {
-  createButton('Audio', demoDiv, async () => {
-    await getAndPlayLocalAndRemoteTrack(true);
+  createButton('Local Audio', demoDiv, async () => {
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const localTrack = mediaStream.getTracks()[0];
+    await playLocalAndRemoteTracks(localTrack);
+  });
+
+  createButton('Synthetic Audio', demoDiv, async () => {
+    const syntheticTrack = generateAudioTrack();
+    await playLocalAndRemoteTracks(syntheticTrack);
   });
 
   createButton('Video', demoDiv, async () => {
-    await getAndPlayLocalAndRemoteTrack(false);
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+    const localTrack = mediaStream.getTracks()[0];
+    await playLocalAndRemoteTracks(localTrack);
   });
+
+  createButton('Synthetic Video', demoDiv, async () => {
+    const canvas = document.createElement('canvas');
+    const syntheticTrack = generateVideoTrack(canvas, 'Yo');
+    await playLocalAndRemoteTracks(syntheticTrack);
+  });
+
+
 }
 
