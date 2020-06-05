@@ -64,7 +64,7 @@ function renderTrack(track, trackName) {
     paused.setText(mediaElement.paused);
   }
 
-  const onVisibilityChange = () => updateStats('visibilityChange');
+  const onVisibilityChange = () => updateStats('visibilityChange: ' + document.visibilityState);
   const onTrackEnded = () => updateStats('ended');
   const onTrackMute = () => updateStats('mute');
   const onTrackUnmute = () => updateStats('unmute');
