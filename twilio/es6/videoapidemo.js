@@ -542,10 +542,14 @@ export function demo(Video) {
     });
   }
 
-  btnPreviewAudio.onclick = async () => {
+  async function createLocalTrack(video) {
+    const container = video ? localVideoTrackContainer : localAudioTrackContainer;
     try {
-      const localTrack = await Video.createLocalAudioTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true });
-      const trackContainer = renderTrack(localTrack, localAudioTrackContainer, true);
+      const localTrack = video ?
+        await Video.createLocalVideoTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true }) :
+        await Video.createLocalAudioTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true });
+
+      const trackContainer = renderTrack(localTrack, container, true);
       console.log('localTracks.length:', localTracks.length);
 
       createButton('clone', trackContainer, () => {
@@ -555,27 +559,19 @@ export function demo(Video) {
           cloneBtn.btn.remove();
         });
         const cloned = new Video.LocalAudioTrack(clonedMSTrack);
-        renderTrack(cloned, localAudioTrackContainer, true);
+        renderTrack(cloned, container, true);
       });
     } catch (err) {
-      log('err: ', err);
+      const { code, name, message } = err;
+      log(`createLocalAudioTrack error: code:${code}, name:${name}, message:${message}`, err);
     }
+  }
+  btnPreviewAudio.onclick = async () => {
+    await createLocalTrack(false);
   };
 
   btnPreviewVideo.onclick = async () => {
-    const localTrack = await Video.createLocalVideoTrack();
-    const trackContainer = renderTrack(localTrack, localVideoTrackContainer, true);
-    console.log('localTracks.length:', localTracks.length);
-
-    createButton('clone', trackContainer, () => {
-      const clonedMSTrack = localTrack.mediaStreamTrack.clone();
-      const cloneBtn = createButton(' stop clone', trackContainer, () => {
-        clonedMSTrack.stop();
-        cloneBtn.btn.remove();
-      });
-      const cloned = new Video.LocalVideoTrack(clonedMSTrack);
-      renderTrack(cloned, localVideoTrackContainer, true);
-    });
+    await createLocalTrack(true);
   };
 
   function listenForVisibilityChange() {
