@@ -33,7 +33,7 @@ export function demo(Video) {
   console.log({ protocol, host, pathname });
 
   if (!token) {
-    createElement(document.body, { type: 'h1', classNames: ['badError'] }).textContent = 'token or tokenUrl is very required parameter';
+    createElement(document.body, { type: 'h1', classNames: ['badError'] }).textContent = `token is required parameter to connect. it can be <token> or <tokenUrl> or default, when token=default, we will use ${protocol}//${host}/token to obtain token`;
   } else if (token.indexOf('http') >= 0) {
     tokenUrl = token;
     token = null;
@@ -58,12 +58,11 @@ export function demo(Video) {
   let logClearBtn = null;
   let realLogDiv = null;
   function log(...args) {
-
     if (!logClearBtn) {
       logClearBtn = createButton('clear log', logDiv, () => {
         realLogDiv.innerHTML = '';
       });
-      realLogDiv = createDiv(logDiv);
+      realLogDiv = createDiv(logDiv, 'log');
     }
 
     console.log(args);
@@ -264,7 +263,10 @@ export function demo(Video) {
       createButton('disable', controlContainer, () => track.disable());
       createButton('enable', controlContainer, () => track.enable());
       createButton('stop', controlContainer, () => track.stop());
-      createButton('msstop', controlContainer, () => track.mediaStreamTrack.stop());
+      createButton('msstop', controlContainer, () => {
+        track.mediaStreamTrack.stop();
+        updateStats();
+      });
 
       let trackPublication = null;
       let unPublishBtn = null;
@@ -284,7 +286,6 @@ export function demo(Video) {
       });
 
       const onRoomChanged = room => {
-        console.warn('makarand: roomChangeMonitor fired:', room);
         if (room) {
           trackPublication = [...room.localParticipant.tracks.values()].find(trackPub => trackPub.track === track);
         }
@@ -373,16 +374,6 @@ export function demo(Video) {
   // A new RemoteTrack was published to the Room.
   function trackPublished(publication, container) {
     renderTrackPublication(publication, container);
-    // if (publication.isSubscribed) {
-    //   renderTrack(publication.track, container);
-    // } else {
-    //   console.log('not subscribed:', publication);
-    // }
-    // publication.on('subscribed', function(track) {
-    //   log('Subscribed to ' + publication.kind + ' track');
-    //   renderTrack(track, container);
-    // });
-    // publication.on('unsubscribed', track => detachTrack(track, container));
   }
 
   // A RemoteTrack was unpublished from the Room.
@@ -533,8 +524,8 @@ export function demo(Video) {
 
     // Once the LocalParticipant leaves the room, detach the Tracks
     // of all Participants, including that of the LocalParticipant.
-    room.on('disconnected', function() {
-      log('Left');
+    room.on('disconnected', (_, err) => {
+      log('Left:', err);
       clearInterval(statUpdater);
       room.participants.forEach(participantDisconnected);
       activeRoom = null;
@@ -542,6 +533,7 @@ export function demo(Video) {
     });
   }
 
+  window.tracks = [];
   async function createLocalTrack(video) {
     const container = video ? localVideoTrackContainer : localAudioTrackContainer;
     try {
@@ -549,6 +541,7 @@ export function demo(Video) {
         await Video.createLocalVideoTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true }) :
         await Video.createLocalAudioTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true });
 
+      window.tracks.push(localTrack);
       const trackContainer = renderTrack(localTrack, container, true);
       console.log('localTracks.length:', localTracks.length);
 

@@ -14,6 +14,7 @@
   "license": "ISC",
   "devDependencies": {
     "cors": "^2.8.5",
+    "css-loader": "^3.5.3",
     "dotenv": "^8.2.0",
     "twilio": "^3.43.1",
     "webpack": "^4.43.0",
@@ -21,8 +22,10 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
+    "bootstrap": "^4.5.0",
     "express": "^4.17.1",
     "lodash": "^4.17.15",
-    "twilio-video": "file:../../../../work/twilio-video.js"
+    "style-loader": "^1.2.1",
+    "twilio-video": "github:twilio/twilio-video.js#2.6.0-rc3"
   }
 }

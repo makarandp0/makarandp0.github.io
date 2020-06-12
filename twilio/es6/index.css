@@ -7,6 +7,7 @@ div#controls {
 }
 
 div#main {
+  box-sizing: border-box;
   display: flex;
   justify-content: flex-start;
   flex-wrap: wrap;
@@ -15,7 +16,7 @@ div#main {
   background-color: #fff;
   border: solid red 2px;
   text-align: center;
-  margin: 5px;
+  padding: 2px;
 }
 
 h1.badError {
@@ -192,7 +193,7 @@ div#room-controls > button {
   text-align: center;
 }
 
-div#log {
+.log {
   /* width: 25em; */
   height: 15em;
   min-height: 100%;
@@ -203,7 +204,7 @@ div#log {
   overflow-y: scroll;
 }
 
-div#log p {
+.log p {
   color: #686865;
   font-family: "Share Tech Mono", "Courier New", Courier, fixed-width;
   font-size: 1.25em;
