@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Twilio Video API Demo</title>
+    <title>Twilio Video API Demo (Built Version)</title>
     <link rel="stylesheet" href="index.css" />
     <link
       rel="stylesheet"
@@ -12,6 +12,7 @@
   </head>
   <body>
     <div id="main">
+      <h2 id="twilioVideoVersion"></h2>
       <div id="localControls">
         <div id="audioTrack">
           <button id="button-preview-audio" class="btn btn-primary btn-block"> Audio </button>
@@ -20,6 +21,7 @@
           <button id="button-preview-video" class="btn btn-primary btn-block"> Video </button>
         </div>
         <div id="room-controls">
+          <h2 id="roomSid"> Not Joined Room Yet </h1>
           <h2 id='localIdentity'> Not Joined Room Yet</h2>
           <p class="instructions">Room Name</p>
           <input id="room-name" type="text" placeholder="Enter a room name" />

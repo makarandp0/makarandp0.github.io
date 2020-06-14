@@ -84,9 +84,9 @@ div.videoContainer {
   border: solid 1px blue;
 }
 
-div#remote-participants h6 {
-  /* position: absolute; */
-  /* font-size: 25px; */
+.trackName,
+.participantName,
+.participantSid {
   background-color: rgba(0, 0, 0, 0.4);
   color: white;
   max-width: calc((100% - 16px) - 0.5em);
@@ -96,6 +96,17 @@ div#remote-participants h6 {
   overflow: hidden;
   white-space: nowrap;
 }
+/* div#remote-participants h6 {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+  max-width: calc((100% - 16px) - 0.5em);
+  margin: 0.25em;
+  border-radius: 4px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+*/
 
 #roomName {
   padding: 2px;

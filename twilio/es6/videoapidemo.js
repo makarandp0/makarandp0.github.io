@@ -4,10 +4,8 @@
 /* eslint-disable quotes */
 'use strict';
 
-
-// const Waveform = require('../../examples/util/waveform');
-// var Video = require('twilio-video');
 import { Waveform } from './waveform.js';
+
 export function demo(Video) {
   const remoteParticipantsContainer = document.getElementById('remote-participants');
   const btnJoin = document.getElementById('button-join');
@@ -23,6 +21,10 @@ export function demo(Video) {
   const autoAttach  = document.getElementById('autoAttach');
   const autoJoin  = document.getElementById('autoJoin');
   const roomName = document.getElementById('room-name');
+  const twilioVideoVersion = document.getElementById('twilioVideoVersion');
+  twilioVideoVersion.innerHTML = "Twilio-Video@" + Video.version;
+  const roomSid = document.getElementById('roomSid');
+
 
   // process parameters.
   var urlParams = new URLSearchParams(window.location.search);
@@ -50,7 +52,6 @@ export function demo(Video) {
   autoAttach.checked = !urlParams.has('noAutoAttach');
   autoPublish.checked = !urlParams.has('noAutoPublish');
   autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
-
 
   var activeRoom;
   const localTracks = [];
@@ -171,7 +172,6 @@ export function demo(Video) {
     };
   }
 
-
   function createTrackStats(track, container) {
     var statsContainer = createDiv(container, 'trackStats');
 
@@ -229,8 +229,8 @@ export function demo(Video) {
   function renderTrackPublication(trackPublication, container) {
     const trackContainerId = "trackPublication_" + trackPublication.trackSid;
     const publicationContainer = createDiv(container, 'publication', trackContainerId);
-    const trackKind = createElement(publicationContainer, { type: 'h2', classNames: ['participantName'] });
-    const trackSid = createElement(publicationContainer, { type: 'h6', classNames: ['participantName'] });
+    const trackKind = createElement(publicationContainer, { type: 'h3', classNames: ['trackName'] });
+    const trackSid = createElement(publicationContainer, { type: 'h6', classNames: ['participantSid'] });
     trackKind.innerHTML = trackPublication.kind + ": published";
     trackSid.innerHTML = trackPublication.trackSid;
 
@@ -387,7 +387,7 @@ export function demo(Video) {
   function participantConnected(participant, container, isLocal = false) {
     let selfContainer = createDiv(container, 'participantDiv', `participantContainer-${participant.identity}`);
 
-    const name = createElement(selfContainer, { type: 'h6', classNames: ['participantName'] });
+    const name = createElement(selfContainer, { type: 'h2', classNames: ['participantName'] });
     name.innerHTML = participant.identity;
 
     const participantMediaDiv = getChildDiv(selfContainer, 'participantMediaDiv');
@@ -437,6 +437,7 @@ export function demo(Video) {
   }
 
   function updateControls(connected) {
+    roomSid.innerHTML = connected ? activeRoom.sid : 'Not joined yet';
     localIdentity.innerHTML = connected ? activeRoom.localParticipant.identity : 'Not joined yet';
     document.getElementById('room-controls').style.display = 'block';
 
@@ -456,26 +457,26 @@ export function demo(Video) {
   (async function main() {
     updateControls(false);
     roomChangeMonitor.emitRoomChange(null);
-    if (!token) {
+    if (token || tokenUrl) {
       try {
         log(`getting token from: ${tokenUrl}`);
         token = (await getRoomCredentials(tokenUrl)).token;
+
+        btnLeave.onclick = function() {
+          log('Leaving room...');
+          activeRoom.disconnect();
+          roomChangeMonitor.emitRoomChange(null);
+        };
+
+        btnJoin.onclick = () => joinRoom(token);
+        if (autoJoin.checked) {
+          btnJoin.onclick();
+        }
       } catch (err) {
-        log('failed to obtain token');
+        log('failed to obtain token', err);
       }
     } else {
-      console.log('Using Token:', token);
-    }
-
-    btnLeave.onclick = function() {
-      log('Leaving room...');
-      activeRoom.disconnect();
-      roomChangeMonitor.emitRoomChange(null);
-    };
-
-    btnJoin.onclick = () => joinRoom(token);
-    if (autoJoin.checked) {
-      btnJoin.onclick();
+      log('token was not specified.');
     }
     listenForVisibilityChange();
   }());
@@ -568,35 +569,13 @@ export function demo(Video) {
   };
 
   function listenForVisibilityChange() {
-    // Set the name of the hidden property and the change event for visibility
-    let hidden;
-    let visibilityChange;
-    if (typeof document.hidden !== 'undefined') { // Opera 12.10 and Firefox 18 and later support
-      hidden = 'hidden';
-      visibilityChange = 'visibilitychange';
-    } else if (typeof document.msHidden !== 'undefined') {
-      hidden = 'msHidden';
-      visibilityChange = 'msvisibilitychange';
-    } else if (typeof document.webkitHidden !== 'undefined') {
-      hidden = 'webkitHidden';
-      visibilityChange = 'webkitvisibilitychange';
-    }
-
-    log(`Will use: ${hidden}, ${visibilityChange}`);
-    function handleVisibilityChange() {
-      if (document[hidden]) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
         log('document was hidden');
       } else {
         log('document was visible');
       }
-    }
-    // Warn if the browser doesn't support addEventListener or the Page Visibility API
-    if (typeof document.addEventListener === 'undefined' || hidden === undefined) {
-      log('This demo requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.');
-    } else {
-      // Handle page visibility change
-      document.addEventListener(visibilityChange, handleVisibilityChange, false);
-    }
+    }, false);
   }
 
 

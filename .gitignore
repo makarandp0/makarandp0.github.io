@@ -1,3 +1,4 @@
 twilio/app/dist/main.js
 node_modules/
 local_only/
+twilio/app/server/twilio_credentials.json
