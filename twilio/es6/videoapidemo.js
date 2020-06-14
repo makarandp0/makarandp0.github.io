@@ -27,20 +27,21 @@ export function demo(Video) {
 
 
   // process parameters.
-  var urlParams = new URLSearchParams(window.location.search);
-  let token = urlParams.get('token');
-  let tokenUrl = null;
 
   const { protocol, host, pathname } = window.location;
   console.log({ protocol, host, pathname });
+  var urlParams = new URLSearchParams(window.location.search);
+  let token = urlParams.get('token') || `${protocol}//${host}/token`;
+  let tokenUrl = null;
 
-  if (!token) {
-    createElement(document.body, { type: 'h1', classNames: ['badError'] }).textContent = `token is required parameter to connect. it can be <token> or <tokenUrl> or default, when token=default, we will use ${protocol}//${host}/token to obtain token`;
-  } else if (token.indexOf('http') >= 0) {
+  if (token.indexOf('http') >= 0) {
     tokenUrl = token;
     token = null;
   } else if (token === 'default') {
     tokenUrl =  `${protocol}//${host}/token`;
+    token = null;
+  } else if (token === 'local') {
+    tokenUrl =  'http://localhost:3000/token';
     token = null;
   } else {
     // if real token is part of the url delete it.
@@ -437,8 +438,8 @@ export function demo(Video) {
   }
 
   function updateControls(connected) {
-    roomSid.innerHTML = connected ? activeRoom.sid : 'Not joined yet';
-    localIdentity.innerHTML = connected ? activeRoom.localParticipant.identity : 'Not joined yet';
+    roomSid.innerHTML = connected ? activeRoom.sid : 'Room: Not Joined';
+    localIdentity.innerHTML = connected ? activeRoom.localParticipant.identity : 'Identity: Unknown';
     document.getElementById('room-controls').style.display = 'block';
 
     [btnLeave].forEach(btn => {
