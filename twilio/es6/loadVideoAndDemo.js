@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { demo } from './videoapidemo.js';
-const defaultSDKVersion = '2.5.0';
+const defaultSDKVersion = '2.6.0-rc4';
 
 export function loadVideoAndDemo(Video) {
   const urlParams = new URLSearchParams(window.location.search);
@@ -20,7 +20,7 @@ export function loadVideoAndDemo(Video) {
     newScript.src = videoUrl;
     document.head.appendChild(newScript);
   } else {
-    window.Twilio = { Video }
+    window.Twilio = { Video };
     demo(window.Twilio.Video);
   }
 }

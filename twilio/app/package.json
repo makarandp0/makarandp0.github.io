@@ -26,6 +26,6 @@
     "express": "^4.17.1",
     "lodash": "^4.17.15",
     "style-loader": "^1.2.1",
-    "twilio-video": "github:twilio/twilio-video.js#2.6.0-rc3"
+    "twilio-video": "github:twilio/twilio-video.js#2.6.0-rc4"
   }
 }

@@ -460,8 +460,10 @@ export function demo(Video) {
     roomChangeMonitor.emitRoomChange(null);
     if (token || tokenUrl) {
       try {
-        log(`getting token from: ${tokenUrl}`);
-        token = (await getRoomCredentials(tokenUrl)).token;
+        if (!token) {
+          log(`getting token from: ${tokenUrl}`);
+          token = (await getRoomCredentials(tokenUrl)).token;
+        }
 
         btnLeave.onclick = function() {
           log('Leaving room...');
