@@ -4,35 +4,38 @@
 const CANVAS_HEIGHT = 150;
 const CANVAS_WIDTH = 300;
 const FFT_SIZE = 512;
-const AudioContext = window.AudioContext // Default
-    || window.webkitAudioContext; // Safari and old versions of Chrome
+const AudioContext =
+  window.AudioContext || window.webkitAudioContext; // Default // Safari and old versions of Chrome
 
 if (!AudioContext) {
   console.error('AudioContext is not supported on this platform ');
 }
-
 /**
- * Create a waveform element to attach to the DOM.
- * @param {WaveformOptions} [options]
- * @property {HTMLDivElement} element - The HTML element to add to the page.
- *//**
  * @typedef {Object} WaveformOptions
  * @property {string} [height='100%'] - The CSS height to apply to the canvas, limiting the size
  *   of the waveform. Defaults to 100% to fill its parent.
  * @property {string} [width='100%'] - The CSS width to apply to the canvas, limiting the size
  *   of the waveform. Defaults to 100% to fill its parent.
  */
-export function Waveform(options) {
+
+/**
+ * Create a waveform element to attach to the DOM.
+ * @param {WaveformOptions} [options]
+ * @property {HTMLDivElement} element - The HTML element to add to the page.
+ */ export function Waveform(options) {
   if (!(this instanceof Waveform)) {
     return new Waveform(options);
   }
 
-  options = Object.assign({
-    // Allow a custom document for testing headlessly.
-    _document: typeof document !== 'undefined' && document,
-    height: '100%',
-    width: '100%'
-  }, options);
+  options = Object.assign(
+    {
+      // Allow a custom document for testing headlessly.
+      _document: typeof document !== 'undefined' && document,
+      height: '100%',
+      width: '100%',
+    },
+    options
+  );
 
   const canvas = options._document.createElement('canvas');
   canvas.style.display = 'block';
@@ -71,7 +74,7 @@ export function Waveform(options) {
     _dataArray: { value: dataArray },
     element: {
       enumerable: true,
-      value: canvas
+      value: canvas,
     },
   });
 }
@@ -84,17 +87,19 @@ export function Waveform(options) {
 Waveform.prototype.setStream = function setStream(stream) {
   // audioContext created w/o user action gets started as suspended.
   // need to resume. ( see: https://goo.gl/7K7WLu )
-  this._audioContext.resume().then(function() {
-    // Disconnect any existing audio source.
-    this.unsetStream();
+  this._audioContext.resume().then(
+    function() {
+      // Disconnect any existing audio source.
+      this.unsetStream();
 
-    // Create a new audio source for the passed stream, and connect it to the analyser.
-    this._audioSource = this._audioContext.createMediaStreamSource(stream);
-    this._audioSource.connect(this._analyser);
+      // Create a new audio source for the passed stream, and connect it to the analyser.
+      this._audioSource = this._audioContext.createMediaStreamSource(stream);
+      this._audioSource.connect(this._analyser);
 
-    // Start the render loop
-    renderFrame(this);
-  }.bind(this));
+      // Start the render loop
+      renderFrame(this);
+    }.bind(this)
+  );
 };
 
 /**
@@ -149,7 +154,7 @@ function renderFrame(waveform) {
   for (var i = 0; i < bufferLength; i++) {
     var v = dataArray[i] / 128.0;
     v *= v;
-    var y = v * CANVAS_HEIGHT / 2;
+    var y = (v * CANVAS_HEIGHT) / 2;
 
     if (i === 0) {
       canvasCtx.moveTo(x, y);
@@ -164,5 +169,3 @@ function renderFrame(waveform) {
   canvasCtx.lineTo(canvas.width, canvas.height / 2);
   canvasCtx.stroke();
 }
-
-// module.exports = Waveform;

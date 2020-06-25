@@ -40,7 +40,7 @@ div#main div#localControls div#room-controls {
 }
 
 body {
- margin: 2px;
+  margin: 2px;
 }
 
 div#main video {
@@ -90,6 +90,7 @@ div.videoContainer {
   background-color: rgba(0, 0, 0, 0.4);
   color: white;
   max-width: calc((100% - 16px) - 0.5em);
+  min-width: 100px;
   margin: 0.25em;
   border-radius: 4px;
   text-overflow: ellipsis;
@@ -114,7 +115,6 @@ div.videoContainer {
   margin: 2px;
 }
 
-
 .labeledStat {
   margin: 2px;
 }
@@ -133,11 +133,11 @@ div.videoContainer {
 }
 
 .bytes {
-  background: lightgreen
+  background: lightgreen;
 }
 
 .bytes.bytes_0 {
-  background: gray
+  background: gray;
 }
 
 canvas {
@@ -179,11 +179,12 @@ button#button-preview {
   width: 270px;
 }
 
-div#controls div#log {
+div#log {
   border: 1px solid #686865;
 }
 
-div#controls div#room-controls {
+div#room-controls {
+  order: 3;
   display: flex;
 }
 
@@ -217,7 +218,7 @@ div#room-controls > button {
 
 .log p {
   color: #686865;
-  font-family: "Share Tech Mono", "Courier New", Courier, fixed-width;
+  font-family: 'Share Tech Mono', 'Courier New', Courier, fixed-width;
   font-size: 1.25em;
   line-height: 1.25em;
   margin-left: 1em;

@@ -2,11 +2,10 @@
 import { demo } from './videoapidemo.js';
 const defaultSDKVersion = '2.6.0-rc4';
 
-export function loadVideoAndDemo(Video) {
+export function loadVideoAndDemo(Video, containerDiv) {
   const urlParams = new URLSearchParams(window.location.search);
   let sdkVersion = urlParams.get('sdkVersion');
   if (sdkVersion || !Video) {
-
     sdkVersion = sdkVersion || defaultSDKVersion;
     const newScript = document.createElement("script");
     newScript.onerror = oError => {
@@ -14,13 +13,13 @@ export function loadVideoAndDemo(Video) {
     };
     newScript.onload = () => {
       console.log('makarand: Twilio.Video.version ', window.Twilio.Video.version);
-      demo(window.Twilio.Video);
+      demo(window.Twilio.Video, containerDiv);
     };
     const videoUrl = `//stage.twiliocdn.com/sdk/js/video/releases/${sdkVersion}/twilio-video.js`;
     newScript.src = videoUrl;
     document.head.appendChild(newScript);
   } else {
     window.Twilio = { Video };
-    demo(window.Twilio.Video);
+    demo(window.Twilio.Video, containerDiv);
   }
 }

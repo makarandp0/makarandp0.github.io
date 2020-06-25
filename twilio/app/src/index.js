@@ -5,5 +5,5 @@ import { loadVideoAndDemo } from '../../es6/loadVideoAndDemo';
 // eslint-disable-next-line sort-imports
 import '../../es6/index.css';
 
-loadVideoAndDemo(Video);
+loadVideoAndDemo(Video, document.body);
 

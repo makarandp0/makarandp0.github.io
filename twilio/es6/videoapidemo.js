@@ -6,28 +6,105 @@
 
 import { Waveform } from './waveform.js';
 
-export function demo(Video) {
-  const remoteParticipantsContainer = document.getElementById('remote-participants');
-  const btnJoin = document.getElementById('button-join');
-  const btnLeave =  document.getElementById('button-leave');
-  const logDiv = document.getElementById('log');
+function createElement(container, { type, id, classNames }) {
+  const el = document.createElement(type);
+  if (id) {
+    el.id = id;
+  }
+  if (classNames) {
+    el.classList.add(...classNames);
+  }
 
-  const localAudioTrackContainer = document.getElementById('audioTrack');
-  const localVideoTrackContainer = document.getElementById('videoTrack');
-  const btnPreviewAudio = document.getElementById('button-preview-audio');
-  const btnPreviewVideo = document.getElementById('button-preview-video');
-  const localIdentity  = document.getElementById('localIdentity');
-  const autoPublish  = document.getElementById('autoPublish');
-  const autoAttach  = document.getElementById('autoAttach');
-  const autoJoin  = document.getElementById('autoJoin');
-  const roomName = document.getElementById('room-name');
-  const twilioVideoVersion = document.getElementById('twilioVideoVersion');
-  twilioVideoVersion.innerHTML = "Twilio-Video@" + Video.version;
-  const roomSid = document.getElementById('roomSid');
+  container.appendChild(el);
+  return el;
+}
 
+function createDiv(container, divClass, id) {
+  divClass = Array.isArray(divClass) ? divClass : [divClass];
+  return createElement(container, { type: 'div', classNames: divClass, id });
+}
+
+function getChildDiv(container, divClass) {
+  return container.querySelector('.' + divClass) || createDiv(container, divClass);
+}
+
+function createButton(text, container, onClick) {
+  const btn = createElement(container, { type: 'button', classNames: ['btn', 'btn-outline-primary', 'btn-sm'] });
+  btn.innerHTML = text;
+  btn.onclick = onClick;
+  return {
+    btn,
+    show: visible => {
+      btn.style.display = visible ? 'inline-block' : 'none';
+    },
+    text: newText => {
+      btn.innerHTML = newText;
+    },
+    click: () => onClick(),
+  };
+}
+
+function createLabeledCheckbox(container, labelText, id) {
+  const checkbox = createElement(container, { type: 'input', id });
+  checkbox.setAttribute('type', 'checkbox');
+
+  const label = createElement(container, { type: 'label' });
+  label.innerHTML = labelText;
+  label.setAttribute('for', id);
+  return checkbox;
+}
+
+export function demo(Video, containerDiv) {
+  // create html
+  const mainDiv = createDiv(containerDiv, 'main', 'main');
+  const logDiv = createDiv(containerDiv, 'outerLog', 'log');
+  const twilioVideoVersion = createElement(mainDiv, { type: 'h1', id: 'twilioVideoVersion' });
+  const localControls = createDiv(mainDiv, 'localControls', 'localControls');
+  const localAudioTrackContainer = createDiv(localControls, 'audioTrackContainer', 'audioTrack');
+  const localVideoTrackContainer = createDiv(localControls, 'videoTrackContainer', 'videoTrack');
+  const btnPreviewAudio = createElement(localAudioTrackContainer, {
+    type: 'button',
+    id: 'button-preview-audio',
+    classNames: ['btn', 'btn-primary', 'btn-block'],
+  });
+  btnPreviewAudio.innerHTML = 'Audio';
+
+  const btnPreviewVideo = createElement(localVideoTrackContainer, {
+    type: 'button',
+    id: 'button-preview-video',
+    classNames: ['btn', 'btn-primary', 'btn-block'],
+  });
+  btnPreviewVideo.innerHTML = 'Video';
+
+  const roomControlsDiv = createDiv(localControls, 'room-controls', 'room-controls');
+  const roomSid = createElement(roomControlsDiv, { type: 'h2', id: 'roomSid' });
+  const localIdentity = createElement(roomControlsDiv, { type: 'h2', id: 'localIdentity' });
+  const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
+  roomNameInput.placeholder = 'Enter room name';
+
+  const controlOptionsDiv = createDiv(roomControlsDiv, 'control-options', 'control-options');
+
+  const autoPublish = createLabeledCheckbox(controlOptionsDiv, 'Auto Publish', 'autoPublish');
+  const autoAttach = createLabeledCheckbox(controlOptionsDiv, 'Auto Attach', 'autoAttach');
+  const autoJoin = createLabeledCheckbox(controlOptionsDiv, 'Auto Join', 'autoJoin');
+
+  const btnJoin = createElement(roomControlsDiv, {
+    type: 'button',
+    id: 'button-join',
+    classNames: ['btn', 'btn-primary', 'btn-block'],
+  });
+  btnJoin.innerHTML = 'Join';
+  const btnLeave = createElement(roomControlsDiv, {
+    type: 'button',
+    id: 'button-leave',
+    classNames: ['btn', 'btn-primary', 'btn-block'],
+  });
+  btnLeave.innerHTML = 'Leave';
+
+  const remoteParticipantsContainer = createDiv(mainDiv, 'remote-participants', 'remote-participants');
+  twilioVideoVersion.innerHTML = 'Twilio-Video@' + Video.version;
 
   // process parameters.
-
   const { protocol, host, pathname } = window.location;
   console.log({ protocol, host, pathname });
   var urlParams = new URLSearchParams(window.location.search);
@@ -38,10 +115,10 @@ export function demo(Video) {
     tokenUrl = token;
     token = null;
   } else if (token === 'default') {
-    tokenUrl =  `${protocol}//${host}/token`;
+    tokenUrl = `${protocol}//${host}/token`;
     token = null;
   } else if (token === 'local') {
-    tokenUrl =  'http://localhost:3000/token';
+    tokenUrl = 'http://localhost:3000/token';
     token = null;
   } else {
     // if real token is part of the url delete it.
@@ -49,7 +126,7 @@ export function demo(Video) {
     window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
   }
 
-  roomName.value = urlParams.get('room');
+  roomNameInput.value = urlParams.get('room');
   autoAttach.checked = !urlParams.has('noAutoAttach');
   autoPublish.checked = !urlParams.has('noAutoPublish');
   autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
@@ -68,17 +145,17 @@ export function demo(Video) {
     }
 
     console.log(args);
-    const message = [...args].reduce((acc, arg) => acc + ", " + arg, "");
+    const message = [...args].reduce((acc, arg) => acc + ', ' + arg, '');
     // message = (new Date()).toISOString() + ':' + message;
-    realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message  + '</p>';
+    realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message + '</p>';
     realLogDiv.scrollTop = realLogDiv.scrollHeight;
   }
 
   /**
-  * Get the Room credentials from the server.
-  * @param {string} [identity] identity to use, if not specified server generates random one.
-  * @returns {Promise<{identity: string, token: string}>}
-  */
+   * Get the Room credentials from the server.
+   * @param {string} [identity] identity to use, if not specified server generates random one.
+   * @returns {Promise<{identity: string, token: string}>}
+   */
   async function getRoomCredentials(tokenUrl) {
     const response = await fetch(tokenUrl); // /?tokenUrl=http://localhost:3000/token
     return response.json();
@@ -111,8 +188,8 @@ export function demo(Video) {
   const roomChangeMonitor = new RoomChanged();
 
   /**
- * Attach the AudioTrack to the HTMLAudioElement and start the Waveform.
- */
+   * Attach the AudioTrack to the HTMLAudioElement and start the Waveform.
+   */
   function attachAudioTrack(track, container) {
     var audioElement = container.appendChild(track.attach());
     const waveform = new Waveform();
@@ -120,39 +197,6 @@ export function demo(Video) {
     const canvasContainer = createDiv(container, 'canvasContainer');
     canvasContainer.appendChild(waveform.element);
     return audioElement;
-  }
-
-  function createElement(container, { type, id, classNames }) {
-    const el = document.createElement(type);
-    if (id) {
-      el.id = id;
-    }
-    if (classNames) {
-      el.classList.add(...classNames);
-    }
-
-    container.appendChild(el);
-    return el;
-  }
-
-  function createDiv(container, divClass, id) {
-    return createElement(container, { type: 'div', classNames: [divClass], id });
-  }
-
-  function getChildDiv(container, divClass) {
-    return container.querySelector('.' + divClass) || createDiv(container, divClass);
-  }
-
-  function createButton(text, container, onClick) {
-    const btn = createElement(container, { type: 'button', classNames: ['btn', 'btn-outline-primary', 'btn-sm'] });
-    btn.innerHTML = text;
-    btn.onclick = onClick;
-    return {
-      btn,
-      show: visible => { btn.style.display = visible ? 'inline-block' : 'none'; },
-      text: newText => { btn.innerHTML = newText; },
-      click: () => onClick()
-    };
   }
 
   // styleMap uses the values to decide the style.
@@ -169,18 +213,30 @@ export function demo(Video) {
           el.classList.add(`${className}_${text}`);
           lastText = text;
         }
-      }
+      },
     };
   }
 
   function createTrackStats(track, container) {
     var statsContainer = createDiv(container, 'trackStats');
 
-    const readyState = createLabeledStat(statsContainer, 'mediaStreamTrack.readyState', { className: 'readyState', useValueToStyle: true });
-    const enabled = createLabeledStat(statsContainer, 'mediaStreamTrack.enabled', { className: 'enabled', useValueToStyle: true });
-    const muted = createLabeledStat(statsContainer, 'mediaStreamTrack.muted', { className: 'muted', useValueToStyle: true });
+    const readyState = createLabeledStat(statsContainer, 'mediaStreamTrack.readyState', {
+      className: 'readyState',
+      useValueToStyle: true,
+    });
+    const enabled = createLabeledStat(statsContainer, 'mediaStreamTrack.enabled', {
+      className: 'enabled',
+      useValueToStyle: true,
+    });
+    const muted = createLabeledStat(statsContainer, 'mediaStreamTrack.muted', {
+      className: 'muted',
+      useValueToStyle: true,
+    });
     const started = createLabeledStat(statsContainer, 'Track.started', { className: 'started', useValueToStyle: true });
-    const trackEnabled = createLabeledStat(statsContainer, 'Track.enabled', { className: 'enabled', useValueToStyle: true });
+    const trackEnabled = createLabeledStat(statsContainer, 'Track.enabled', {
+      className: 'enabled',
+      useValueToStyle: true,
+    });
     const bytes = createLabeledStat(statsContainer, 'bytes', { className: 'bytes', useValueToStyle: true });
     bytes.setText('0');
 
@@ -219,7 +275,7 @@ export function demo(Video) {
 
   const trackStatUpdater = new Map();
   function updateTrackStats({ trackId, trackSid, bytesSent, bytesReceived, trackType }) {
-    const isRemote = trackType === 'remoteVideoTrackStats' || trackType ===  'remoteAudioTrackStats';
+    const isRemote = trackType === 'remoteVideoTrackStats' || trackType === 'remoteAudioTrackStats';
     trackStatUpdater.forEach((updateStats, track) => {
       if (track.sid === trackSid || track.id === trackId) {
         updateStats('bytes', isRemote ? bytesReceived : bytesSent);
@@ -228,11 +284,11 @@ export function demo(Video) {
   }
 
   function renderTrackPublication(trackPublication, container) {
-    const trackContainerId = "trackPublication_" + trackPublication.trackSid;
+    const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
     const publicationContainer = createDiv(container, 'publication', trackContainerId);
     const trackKind = createElement(publicationContainer, { type: 'h3', classNames: ['trackName'] });
     const trackSid = createElement(publicationContainer, { type: 'h6', classNames: ['participantSid'] });
-    trackKind.innerHTML = trackPublication.kind + ": published";
+    trackKind.innerHTML = trackPublication.kind + ': published';
     trackSid.innerHTML = trackPublication.trackSid;
 
     if (trackPublication.isSubscribed) {
@@ -317,13 +373,13 @@ export function demo(Video) {
     let mediaControls = null;
     const attachDetachBtn = createButton('attach', controlContainer, () => {
       if (mediaControls) {
-      // track is already attached.
+        // track is already attached.
         track.detach().forEach(el => el.remove());
         mediaControls.remove();
         mediaControls = null;
         attachDetachBtn.text('attach');
       } else {
-      // track is detached.
+        // track is detached.
         mediaControls = createDiv(trackContainer, 'mediaControls');
         let audioVideoElement = null;
         if (track.kind === 'audio') {
@@ -379,7 +435,7 @@ export function demo(Video) {
 
   // A RemoteTrack was unpublished from the Room.
   function trackUnpublished(publication, container) {
-    const publicationDivId = "trackPublication_" + publication.trackSid;
+    const publicationDivId = 'trackPublication_' + publication.trackSid;
     const trackContainer = document.getElementById(publicationDivId);
     container.removeChild(trackContainer);
   }
@@ -416,31 +472,33 @@ export function demo(Video) {
   window.addEventListener('beforeunload', leaveRoomIfJoined);
 
   function joinRoom(token) {
-    var roomName = document.getElementById('room-name').value;
+    var roomName = roomNameInput.value;
     if (!roomName) {
-    // eslint-disable-next-line no-alert
+      // eslint-disable-next-line no-alert
       alert('Please enter a room name.');
       return;
     }
 
-    log(`Joining room ${roomName} ${autoPublish.checked ? "with" : "without"} ${localTracks.length} localTracks`);
+    log(`Joining room ${roomName} ${autoPublish.checked ? 'with' : 'without'} ${localTracks.length} localTracks`);
     var connectOptions = {
       tracks: autoPublish.checked ? localTracks : [],
       name: roomName,
-      logLevel: 'debug'
+      logLevel: 'debug',
     };
     // Join the Room with the token from the server and the
     // LocalParticipant's Tracks.
 
-    Video.connect(token, connectOptions).then(roomJoined).catch(error => {
-      log('Could not connect to Twilio: ' + error.message);
-    });
+    Video.connect(token, connectOptions)
+      .then(roomJoined)
+      .catch(error => {
+        log('Could not connect to Twilio: ' + error.message);
+      });
   }
 
   function updateControls(connected) {
     roomSid.innerHTML = connected ? activeRoom.sid : 'Room: Not Joined';
     localIdentity.innerHTML = connected ? activeRoom.localParticipant.identity : 'Identity: Unknown';
-    document.getElementById('room-controls').style.display = 'block';
+    roomControlsDiv.style.display = 'block';
 
     [btnLeave].forEach(btn => {
       btn.disabled = connected === false;
@@ -484,14 +542,15 @@ export function demo(Video) {
     listenForVisibilityChange();
   }());
 
-
   // Get the Participant's Tracks.
   function getTracks(participant) {
-    return Array.from(participant.tracks.values()).filter(function(publication) {
-      return publication.track;
-    }).map(function(publication) {
-      return publication.track;
-    });
+    return Array.from(participant.tracks.values())
+      .filter(function(publication) {
+        return publication.track;
+      })
+      .map(function(publication) {
+        return publication.track;
+      });
   }
 
   // Successfully connected!
@@ -520,9 +579,11 @@ export function demo(Video) {
     var statUpdater = setInterval(async () => {
       const statReports = await room.getStats();
       statReports.forEach(statReport => {
-        ['remoteVideoTrackStats', 'remoteAudioTrackStats', 'localAudioTrackStats', 'localVideoTrackStats'].forEach(trackType => {
-          statReport[trackType].forEach(trackStats => updateTrackStats({ ...trackStats, trackType }));
-        });
+        ['remoteVideoTrackStats', 'remoteAudioTrackStats', 'localAudioTrackStats', 'localVideoTrackStats'].forEach(
+          trackType => {
+            statReport[trackType].forEach(trackStats => updateTrackStats({ ...trackStats, trackType }));
+          }
+        );
       });
     }, 100);
 
@@ -541,9 +602,15 @@ export function demo(Video) {
   async function createLocalTrack(video) {
     const container = video ? localVideoTrackContainer : localAudioTrackContainer;
     try {
-      const localTrack = video ?
-        await Video.createLocalVideoTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true }) :
-        await Video.createLocalAudioTrack({ logLevel: 'debug', workaroundWebKitBug1208516: true });
+      const localTrack = video
+        ? await Video.createLocalVideoTrack({
+          logLevel: 'debug',
+          frameRate: 24,
+          height: 720,
+          width: 1280,
+          name: `camera-${Date.now()}`,
+        })
+        : await Video.createLocalAudioTrack({ logLevel: 'debug' /* , workaroundWebKitBug1208516: true */ });
 
       window.tracks.push(localTrack);
       const trackContainer = renderTrack(localTrack, container, true);
@@ -571,16 +638,30 @@ export function demo(Video) {
     await createLocalTrack(true);
   };
 
+  let unPublished = false;
   function listenForVisibilityChange() {
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        log('document was hidden');
-      } else {
-        log('document was visible');
-      }
-    }, false);
+    document.addEventListener(
+      'visibilitychange',
+      async () => {
+        if (document.hidden) {
+          if (roomChangeMonitor.room) {
+            const videoTracks = [...roomChangeMonitor.room.localParticipant.videoTracks.values()];
+            videoTracks.forEach(track => {
+              roomChangeMonitor.room.localParticipant.unpublishTrack(track.track);
+              track.track.stop();
+              unPublished = true;
+            });
+          }
+        } else {
+          log('document was visible');
+          if (roomChangeMonitor.room && unPublished) {
+            await createLocalTrack(true);
+          }
+        }
+      },
+      false
+    );
   }
-
 
   // Leave Room.
   function leaveRoomIfJoined() {
