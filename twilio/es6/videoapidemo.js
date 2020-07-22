@@ -54,10 +54,35 @@ function createLabeledCheckbox(container, labelText, id) {
   return checkbox;
 }
 
+let logClearBtn = null;
+let realLogDiv = null;
+let logDiv = null;
+function createLog(containerDiv) {
+  logDiv = createDiv(containerDiv, 'outerLog', 'log');
+}
+
+function log(...args) {
+  if (!logClearBtn) {
+    logClearBtn = createButton('clear log', logDiv, () => {
+      realLogDiv.innerHTML = '';
+    });
+    realLogDiv = createDiv(logDiv, 'log');
+  }
+
+  console.log(args);
+  const message = [...args].reduce((acc, arg) => acc + ', ' + arg, '');
+  // message = (new Date()).toISOString() + ':' + message;
+  realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message + '</p>';
+  realLogDiv.scrollTop = realLogDiv.scrollHeight;
+}
+
 export function demo(Video, containerDiv) {
   // create html
   const mainDiv = createDiv(containerDiv, 'main', 'main');
-  const logDiv = createDiv(containerDiv, 'outerLog', 'log');
+  createLog(containerDiv);
+  log("Version: ", Video.version);
+  log("IsSupported: ", Video.isSupported);
+  log("UserAgent: ", navigator.userAgent);
   const twilioVideoVersion = createElement(mainDiv, { type: 'h1', id: 'twilioVideoVersion' });
   const localControls = createDiv(mainDiv, 'localControls', 'localControls');
   const localAudioTrackContainer = createDiv(localControls, 'audioTrackContainer', 'audioTrack');
@@ -133,23 +158,6 @@ export function demo(Video, containerDiv) {
 
   var activeRoom;
   const localTracks = [];
-
-  let logClearBtn = null;
-  let realLogDiv = null;
-  function log(...args) {
-    if (!logClearBtn) {
-      logClearBtn = createButton('clear log', logDiv, () => {
-        realLogDiv.innerHTML = '';
-      });
-      realLogDiv = createDiv(logDiv, 'log');
-    }
-
-    console.log(args);
-    const message = [...args].reduce((acc, arg) => acc + ', ' + arg, '');
-    // message = (new Date()).toISOString() + ':' + message;
-    realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message + '</p>';
-    realLogDiv.scrollTop = realLogDiv.scrollHeight;
-  }
 
   /**
    * Get the Room credentials from the server.
