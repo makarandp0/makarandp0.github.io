@@ -6,6 +6,11 @@
 
 import { Waveform } from './waveform.js';
 
+let number = 0;
+function getNextNumber() {
+  return number++;
+}
+
 function createElement(container, { type, id, classNames }) {
   const el = document.createElement(type);
   if (id) {
@@ -42,6 +47,34 @@ function createButton(text, container, onClick) {
     },
     click: () => onClick(),
   };
+}
+function createSelection({ container, options = ["dog", "cat", "parrot", "rabbit"], title = "Pets", onChange = () => {} }) {
+  var select = document.createElement("select");
+  // select.name = "pets";
+  select.id = title + "_" + getNextNumber();
+
+  for (const val of options) {
+    var option = document.createElement("option");
+    option.value = val;
+    option.text = val;
+    select.appendChild(option);
+  }
+
+  var label = document.createElement("label");
+  label.innerHTML = title;
+  label.htmlFor = select.id;
+
+  select.addEventListener("change", onChange);
+
+  // var x = document.getElementById("mySelect").value
+
+  container.appendChild(label).appendChild(select);
+  return {
+    select,
+    getValue: () => { return select.value; },
+    setValue: value => { select.value = value; /* not if the value is not one of the options then a blank value gets selected */}
+  };
+
 }
 
 function createLabeledCheckbox(container, labelText, id) {
@@ -83,6 +116,7 @@ export function demo(Video, containerDiv) {
   log("Version: ", Video.version);
   log("IsSupported: ", Video.isSupported);
   log("UserAgent: ", navigator.userAgent);
+
   const twilioVideoVersion = createElement(mainDiv, { type: 'h1', id: 'twilioVideoVersion' });
   const localControls = createDiv(mainDiv, 'localControls', 'localControls');
   const localAudioTrackContainer = createDiv(localControls, 'audioTrackContainer', 'audioTrack');
@@ -102,6 +136,20 @@ export function demo(Video, containerDiv) {
   btnPreviewVideo.innerHTML = 'Video';
 
   const roomControlsDiv = createDiv(localControls, 'room-controls', 'room-controls');
+  const topologySelect = createSelection({
+    container: roomControlsDiv,
+    options: ["group-small", "peer-to-peer", "group"],
+    title: "topology",
+    onChange: () => console.log('topology change:', topologySelect.getValue())
+  });
+
+  const envSelect = createSelection({
+    container: roomControlsDiv,
+    options: ["dev", "stage", "prod"],
+    title: "env",
+    onChange: () => console.log('env change:', envSelect.getValue())
+  });
+
   const roomSid = createElement(roomControlsDiv, { type: 'h2', id: 'roomSid' });
   const localIdentity = createElement(roomControlsDiv, { type: 'h2', id: 'localIdentity' });
   const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
@@ -130,9 +178,17 @@ export function demo(Video, containerDiv) {
   twilioVideoVersion.innerHTML = 'Twilio-Video@' + Video.version;
 
   // process parameters.
+  var urlParams = new URLSearchParams(window.location.search);
+  roomNameInput.value = urlParams.get('room');
+  autoAttach.checked = !urlParams.has('noAutoAttach');
+  autoPublish.checked = !urlParams.has('noAutoPublish');
+  autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
+  topologySelect.setValue(urlParams.get('topology') || "group-small");
+  envSelect.setValue(urlParams.get('env') || "prod");
+
   const { protocol, host, pathname } = window.location;
   console.log({ protocol, host, pathname });
-  var urlParams = new URLSearchParams(window.location.search);
+
   let token = urlParams.get('token') || `${protocol}//${host}/token`;
   let tokenUrl = null;
 
@@ -145,16 +201,14 @@ export function demo(Video, containerDiv) {
   } else if (token === 'local') {
     tokenUrl = 'http://localhost:3000/token';
     token = null;
+  } else if (token === 'ss') {
+    tokenUrl = 'ss';
+    token = null;
   } else {
     // if real token is part of the url delete it.
     urlParams.delete('token');
     window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
   }
-
-  roomNameInput.value = urlParams.get('room');
-  autoAttach.checked = !urlParams.has('noAutoAttach');
-  autoPublish.checked = !urlParams.has('noAutoPublish');
-  autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
 
   var activeRoom;
   const localTracks = [];
@@ -165,7 +219,32 @@ export function demo(Video, containerDiv) {
    * @returns {Promise<{identity: string, token: string}>}
    */
   async function getRoomCredentials(tokenUrl) {
+    if (tokenUrl === 'ss') {
+      return getSSToken();
+    }
     const response = await fetch(tokenUrl); // /?tokenUrl=http://localhost:3000/token
+    return response.json();
+  }
+
+  async function getSSToken() {
+    const { protocol, host, pathname } = window.location;
+    console.log({ protocol, host, pathname });
+
+    var urlParams = new URLSearchParams(window.location.search);
+    const topology = topologySelect.getValue();
+    const env = envSelect.getValue();
+    const identity = urlParams.get('identity') || 'mak';
+    const roomName = roomNameInput.value;
+    const _useTwilioConnection = true;
+
+    let url = new URL('http://localhost:8080/settings');
+    url.search = new URLSearchParams({ _useTwilioConnection, env, topology, identity, roomName });
+    console.log('making request');
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+      console.log('response !ok:', response);
+    }
+    console.log('got response:', response);
     return response.json();
   }
 
@@ -314,6 +393,9 @@ export function demo(Video, containerDiv) {
 
   // Attach the Track to the DOM.
   function renderTrack(track, container, isLocal) {
+    track.on('dimensionsChanged', (...args) => {
+      log('dimensionsChanged', ...args);
+    });
     console.log(`track.sid:${track.sid}, track.id:${track.id}`);
     const trackContainerId = isLocal ? track.id : track.sid;
     const trackContainer = createDiv(container, track.kind + 'Container', trackContainerId);
@@ -492,6 +574,7 @@ export function demo(Video, containerDiv) {
       tracks: autoPublish.checked ? localTracks : [],
       name: roomName,
       logLevel: 'debug',
+      environment: envSelect.getValue()
     };
     // Join the Room with the token from the server and the
     // LocalParticipant's Tracks.
@@ -521,31 +604,34 @@ export function demo(Video, containerDiv) {
     });
   }
 
-  (async function main() {
-    updateControls(false);
-    roomChangeMonitor.emitRoomChange(null);
-    if (token || tokenUrl) {
-      try {
-        if (!token) {
+  async function getTokenAndJoinRoom() {
+    if (!token && !tokenUrl) {
+      log('token was not specified.');
+    } else {
+      if (tokenUrl) {
+        try {
           log(`getting token from: ${tokenUrl}`);
           token = (await getRoomCredentials(tokenUrl)).token;
+        } catch (err) {
+          log('failed to obtain token:', err);
         }
-
-        btnLeave.onclick = function() {
-          log('Leaving room...');
-          activeRoom.disconnect();
-          roomChangeMonitor.emitRoomChange(null);
-        };
-
-        btnJoin.onclick = () => joinRoom(token);
-        if (autoJoin.checked) {
-          btnJoin.onclick();
-        }
-      } catch (err) {
-        log('failed to obtain token', err);
       }
-    } else {
-      log('token was not specified.');
+      joinRoom(token);
+    }
+  }
+
+  (function main() {
+    updateControls(false);
+    roomChangeMonitor.emitRoomChange(null);
+    btnLeave.onclick = function() {
+      log('Leaving room...');
+      activeRoom.disconnect();
+      roomChangeMonitor.emitRoomChange(null);
+    };
+
+    btnJoin.onclick = () => getTokenAndJoinRoom();
+    if (autoJoin.checked) {
+      btnJoin.onclick();
     }
     listenForVisibilityChange();
   }());

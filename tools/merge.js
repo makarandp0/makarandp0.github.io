@@ -1,7 +1,10 @@
 /* eslint-disable no-console */
 /* eslint-disable quotes */
 /* eslint-disable camelcase */
-const basic = require('./basic.json');
+console.log("Process.cwd:", process.cwd());
+const cwd = process.cwd();
+
+const basic = require(cwd + '/basic.json');
 // > require("./basic.json")[0]
 // { room_sid: 'RM56c73d3bab67766b33c3098633d5d760',
 //   participant_sid: 'PA03e27c5b8ef424f1803b0863d0f3820d',
@@ -12,7 +15,7 @@ const basic = require('./basic.json');
 //   sdk_version: '2.4.0',
 //   Count: '1' }
 
-const tracks = require("./tracks.json");
+const tracks = require(cwd + "/tracks.json");
 // > require("./tracks.json")[0]
 // { room_sid: 'RM7c45458a62e29d2a24cf81943189a2fb',
 //   participant_sid: 'PA16019e069cf9f65f37e40e714e369737',
@@ -24,9 +27,21 @@ const tracks = require("./tracks.json");
 //   packets_lost: '0',
 //   'average rtt': '' }
 
+const errors = require(cwd + "/errors.json");
+// {"room_sid":"RM90be2e0c78e84d040325fe9e93fe2cce",
+// "participant_sid":"PA87946330001d14ae03c829353ee37bb2",
+// "error_code":"53205","payload.error_message: Descending":
+// "Participant disconnected because of duplicate identity","Count":"1"},
+// {"room_sid":"RM90be2e0c78e84d040325fe9e93fe2cce",
+// "participant_sid":"PA87946330001d14ae03c829353ee37bb2",
+// "error_code":"53205",
+// "error_message":"Participant disconnected because of duplicate identity","Count":"1"},
+
 const participantMap = {};
 basic.forEach(entry => {
   participantMap[entry.participant_sid] = entry;
+  const error = errors.find(errorEntry => errorEntry.participant_sid === entry.participant_sid);
+  participantMap[entry.participant_sid].error_message = error ? error.error_message : "no_error";
 });
 
 function convertToNumber(res) {
@@ -37,7 +52,7 @@ function convertToNumber(res) {
 }
 
 const results = tracks.map(track => {
-  const { room_sid, browser, browser_version, hw_device_model, sdk_version } = participantMap[track.participant_sid];
+  const { room_sid, browser, browser_version, hw_device_model, sdk_version, error_message } = participantMap[track.participant_sid];
   const { participant_sid, track_sid, track_type, packets_sent, packets_received, packets_lost } = track;
   let packets = 0;
   let packetLoss = 0;
@@ -47,8 +62,9 @@ const results = tracks.map(track => {
     packets = convertToNumber(packets_received);
   }
   packetLoss = packets === 0 ? 0 : convertToNumber(packets_lost) * 100 / packets;
+  const packetLoss_percent = packetLoss.toFixed(2);
 
-  return { room_sid, participant_sid, browser, browser_version, hw_device_model, track_sid, track_type, packets, packetLoss, sdk_version };
+  return { room_sid, participant_sid, browser, browser_version, hw_device_model, track_sid, track_type, packets, packetLoss_percent, sdk_version, error_message };
 });
 
 var jsonData = JSON.stringify(results);

@@ -20,7 +20,8 @@ module.exports = {
     https: false,
     contentBase: './dist',
     proxy: {
-      '/token': 'http://localhost:3000'
+      '/token': 'http://localhost:3000',
+      '/settings': 'http://localhost:9000'
     }
   }
 };
