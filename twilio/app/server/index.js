@@ -121,10 +121,21 @@ async function completeRoom({ environment = 'prod', roomName }) {
 const app = express();
 app.use(cors({ origin: true }));
 
-app.get('/token', function(request, response) {
-  const { identity = randomName(), environment } = request.query;
-  const token = createAccessToken({ environment, identity });
-  response.send({ identity, token });
+app.get('/token', async function(request, response) {
+  const { identity = randomName(), environment = 'prod', topology, roomName } = request.query;
+  if (topology) {
+    // topology was specified, have to create room
+    const result = await createRoom({ environment, roomName, topology });
+
+    response.set('Content-Type', 'application/json');
+
+    result.token = createAccessToken({ environment, roomName, identity });
+    result.identity = identity;
+    response.send(result);
+  } else {
+    const token = createAccessToken({ environment, identity });
+    response.send({ identity, token });
+  }
 });
 
 // creates a room and a token for it.

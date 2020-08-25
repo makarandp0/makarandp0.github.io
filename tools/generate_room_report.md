@@ -9,7 +9,7 @@ md local_only/foo
 
 ### Step 3: convert them to json
 ```
-list = $(*.json)
+list=$(ls *.csv)
 source ../../convertToJson.sh
 ```
 

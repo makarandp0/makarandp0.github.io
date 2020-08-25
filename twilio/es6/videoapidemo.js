@@ -201,9 +201,6 @@ export function demo(Video, containerDiv) {
   } else if (token === 'local') {
     tokenUrl = 'http://localhost:3000/token';
     token = null;
-  } else if (token === 'ss') {
-    tokenUrl = 'ss';
-    token = null;
   } else {
     // if real token is part of the url delete it.
     urlParams.delete('token');
@@ -219,32 +216,13 @@ export function demo(Video, containerDiv) {
    * @returns {Promise<{identity: string, token: string}>}
    */
   async function getRoomCredentials(tokenUrl) {
-    if (tokenUrl === 'ss') {
-      return getSSToken();
-    }
-    const response = await fetch(tokenUrl); // /?tokenUrl=http://localhost:3000/token
-    return response.json();
-  }
-
-  async function getSSToken() {
-    const { protocol, host, pathname } = window.location;
-    console.log({ protocol, host, pathname });
-
-    var urlParams = new URLSearchParams(window.location.search);
     const topology = topologySelect.getValue();
-    const env = envSelect.getValue();
-    const identity = urlParams.get('identity') || 'mak';
+    const environment = envSelect.getValue();
     const roomName = roomNameInput.value;
-    const _useTwilioConnection = true;
 
-    let url = new URL('http://localhost:8080/settings');
-    url.search = new URLSearchParams({ _useTwilioConnection, env, topology, identity, roomName });
-    console.log('making request');
-    const response = await fetch(url, { credentials: 'include' });
-    if (!response.ok) {
-      console.log('response !ok:', response);
-    }
-    console.log('got response:', response);
+    let url = new URL(tokenUrl);
+    url.search = new URLSearchParams({ environment, topology, roomName });
+    const response = await fetch(url); // /?tokenUrl=http://localhost:3000/token
     return response.json();
   }
 
