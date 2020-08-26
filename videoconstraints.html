@@ -1,17 +1,17 @@
-<h2>Demonstrates iOS Safari issue </h2>
+<h2> video constraints demo </h2>
 <label for="videoConstraints">VideoConstraints:</label>
 <input type="text" id="video_constraints" name="video_constraints" size="100" value='{"width":1920,"height":1080,"frameRate":24}'>
 <br><br>
 <button id="getUserMedia">Step 1: getUserMedia</button>
 <br><br>
-<video id="local_video" width="200" autoplay=true></video>
+<video id="local_video" autoplay=true></video>
 <br><br>
 <label for="packetsSent">packetsSent:</label>
 <input type="text" id="packetsSent" name="packetsSent" size="20" value=''>
 <br><br>
 <button id="negotiate">Step 2: negotiate</button>
 <br><br>
-<video id="remote_video" width="200" autoplay=true></video>
+<video id="remote_video" autoplay=true></video>
 <br><br>
 <label for="packetsReceived">packetsReceived:</label>
 <input type="text" id="packetsReceived" name="packetsReceived" size="20" value=''>
@@ -45,10 +45,10 @@ const local_video = document.getElementById('local_video');
 
 let localVideoTrack = null;
 document.getElementById('getUserMedia').onclick = async function () {
-  log('Step 0: check video constraints: ' + video_constraints.value);
+  log('checking video constraints: ' + video_constraints.value);
   const videoConstraints = JSON.parse(video_constraints.value);
 
-  log('Step 1: get GUM stream');
+  log('getting video stream');
   userMediaStream  = await navigator.mediaDevices.getUserMedia({ audio: false, video: videoConstraints });
   local_video.srcObject = userMediaStream;
 
