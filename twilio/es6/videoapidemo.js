@@ -5,7 +5,8 @@
 'use strict';
 
 import { Waveform } from './waveform.js';
-
+import generateAudioTrack from '../../jsutilmodules/syntheticaudio.js';
+import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
 let number = 0;
 function getNextNumber() {
   return number++;
@@ -72,9 +73,8 @@ function createSelection({ container, options = ["dog", "cat", "parrot", "rabbit
   return {
     select,
     getValue: () => { return select.value; },
-    setValue: value => { select.value = value; /* not if the value is not one of the options then a blank value gets selected */}
+    setValue: value => { select.value = value; /* not if the value is not one of the options then a blank value gets selected */ }
   };
-
 }
 
 function createLabeledCheckbox(container, labelText, id) {
@@ -126,14 +126,29 @@ export function demo(Video, containerDiv) {
     id: 'button-preview-audio',
     classNames: ['btn', 'btn-primary', 'btn-block'],
   });
-  btnPreviewAudio.innerHTML = 'Audio';
+  btnPreviewAudio.innerHTML = 'Local Audio';
+
+  const btnSyntheticAudio = createElement(localAudioTrackContainer, {
+    type: 'button',
+    id: 'button-preview-audio2',
+    classNames: ['btn', 'btn-primary', 'btn-block'],
+  });
+  btnSyntheticAudio.innerHTML = 'Synthetic Audio';
+
 
   const btnPreviewVideo = createElement(localVideoTrackContainer, {
     type: 'button',
     id: 'button-preview-video',
     classNames: ['btn', 'btn-primary', 'btn-block'],
   });
-  btnPreviewVideo.innerHTML = 'Video';
+  btnPreviewVideo.innerHTML = 'Local Video';
+
+  const btnSyntheticVideo = createElement(localVideoTrackContainer, {
+    type: 'button',
+    id: 'button-preview-video2',
+    classNames: ['btn', 'btn-primary', 'btn-block'],
+  });
+  btnSyntheticVideo.innerHTML = 'Synthetic Video';
 
   const roomControlsDiv = createDiv(localControls, 'room-controls', 'room-controls');
   const topologySelect = createSelection({
@@ -481,6 +496,24 @@ export function demo(Video, containerDiv) {
     return trackContainer;
   }
 
+  window.tracks = [];
+  function renderLocalTrack(localTrack) {
+    const container = localTrack.kind === 'video' ? localVideoTrackContainer : localAudioTrackContainer;
+    window.tracks.push(localTrack);
+    const trackContainer = renderTrack(localTrack, container, true);
+    console.log('localTracks.length:', localTracks.length);
+
+    createButton('clone', trackContainer, () => {
+      const clonedMSTrack = localTrack.mediaStreamTrack.clone();
+      const cloneBtn = createButton(' stop clone', trackContainer, () => {
+        clonedMSTrack.stop();
+        cloneBtn.btn.remove();
+      });
+      const cloned = new Video.LocalAudioTrack(clonedMSTrack);
+      renderTrack(cloned, container, true);
+    });
+  }
+
   // Detach given track from the DOM.
   function detachTrack(track, container) {
     const trackContainer = document.getElementById(track.sid);
@@ -577,7 +610,7 @@ export function demo(Video, containerDiv) {
       btn.disabled = connected === true;
     });
 
-    [btnPreviewAudio, btnPreviewVideo].forEach(btn => {
+    [btnPreviewAudio, btnPreviewVideo, btnSyntheticAudio, btnSyntheticVideo].forEach(btn => {
       btn.disabled = false;
     });
   }
@@ -611,7 +644,6 @@ export function demo(Video, containerDiv) {
     if (autoJoin.checked) {
       btnJoin.onclick();
     }
-    listenForVisibilityChange();
   }());
 
   // Get the Participant's Tracks.
@@ -670,70 +702,34 @@ export function demo(Video, containerDiv) {
     });
   }
 
-  window.tracks = [];
-  async function createLocalTrack(video) {
-    const container = video ? localVideoTrackContainer : localAudioTrackContainer;
-    try {
-      const localTrack = video
-        ? await Video.createLocalVideoTrack({
-          logLevel: 'debug',
-          frameRate: 24,
-          height: 720,
-          width: 1280,
-          name: `camera-${Date.now()}`,
-        })
-        : await Video.createLocalAudioTrack({ logLevel: 'debug' /* , workaroundWebKitBug1208516: true */ });
 
-      window.tracks.push(localTrack);
-      const trackContainer = renderTrack(localTrack, container, true);
-      console.log('localTracks.length:', localTracks.length);
-
-      createButton('clone', trackContainer, () => {
-        const clonedMSTrack = localTrack.mediaStreamTrack.clone();
-        const cloneBtn = createButton(' stop clone', trackContainer, () => {
-          clonedMSTrack.stop();
-          cloneBtn.btn.remove();
-        });
-        const cloned = new Video.LocalAudioTrack(clonedMSTrack);
-        renderTrack(cloned, container, true);
-      });
-    } catch (err) {
-      const { code, name, message } = err;
-      log(`createLocalAudioTrack error: code:${code}, name:${name}, message:${message}`, err);
-    }
-  }
   btnPreviewAudio.onclick = async () => {
-    await createLocalTrack(false);
+    const thisTrackName = 'mic-' + getNextNumber();
+    const localTrack = await Video.createLocalAudioTrack({ logLevel: 'warn', name: thisTrackName });
+    await renderLocalTrack(localTrack);
+  };
+
+  btnSyntheticAudio.onclick = async () => {
+    const thisTrackName = 'Audio-' + getNextNumber();
+    const msTrack = await generateAudioTrack(10);
+    const localTrack = new Video.LocalAudioTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
+    renderLocalTrack(localTrack);
   };
 
   btnPreviewVideo.onclick = async () => {
-    await createLocalTrack(true);
+    const thisTrackName = 'camera-' + getNextNumber();
+    const localTrack = await Video.createLocalVideoTrack({ logLevel: 'warn', name: thisTrackName });
+    await renderLocalTrack(localTrack);
   };
 
-  let unPublished = false;
-  function listenForVisibilityChange() {
-    document.addEventListener(
-      'visibilitychange',
-      async () => {
-        if (document.hidden) {
-          if (roomChangeMonitor.room) {
-            const videoTracks = [...roomChangeMonitor.room.localParticipant.videoTracks.values()];
-            videoTracks.forEach(track => {
-              roomChangeMonitor.room.localParticipant.unpublishTrack(track.track);
-              track.track.stop();
-              unPublished = true;
-            });
-          }
-        } else {
-          log('document was visible');
-          if (roomChangeMonitor.room && unPublished) {
-            await createLocalTrack(true);
-          }
-        }
-      },
-      false
-    );
-  }
+
+  btnSyntheticVideo.onclick = async () => {
+    const canvas = document.createElement('canvas');
+    const thisTrackName = 'Video-' + getNextNumber();
+    const msTrack = await generateVideoTrack(canvas, thisTrackName);
+    const localTrack = new Video.LocalVideoTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
+    renderLocalTrack(localTrack);
+  };
 
   // Leave Room.
   function leaveRoomIfJoined() {
