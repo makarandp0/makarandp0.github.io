@@ -117,7 +117,6 @@ export function demo(Video, containerDiv) {
   log("IsSupported: ", Video.isSupported);
   log("UserAgent: ", navigator.userAgent);
 
-  const twilioVideoVersion = createElement(mainDiv, { type: 'h1', id: 'twilioVideoVersion' });
   const localControls = createDiv(mainDiv, 'localControls', 'localControls');
   const localAudioTrackContainer = createDiv(localControls, 'audioTrackContainer', 'audioTrack');
   const localVideoTrackContainer = createDiv(localControls, 'videoTrackContainer', 'videoTrack');
@@ -151,6 +150,7 @@ export function demo(Video, containerDiv) {
   btnSyntheticVideo.innerHTML = 'Synthetic Video';
 
   const roomControlsDiv = createDiv(localControls, 'room-controls', 'room-controls');
+  const twilioVideoVersion = createElement(roomControlsDiv, { type: 'h3', id: 'twilioVideoVersion' });
   const topologySelect = createSelection({
     container: roomControlsDiv,
     options: ["group-small", "peer-to-peer", "group"],
@@ -165,8 +165,8 @@ export function demo(Video, containerDiv) {
     onChange: () => console.log('env change:', envSelect.getValue())
   });
 
-  const roomSid = createElement(roomControlsDiv, { type: 'h2', id: 'roomSid' });
-  const localIdentity = createElement(roomControlsDiv, { type: 'h2', id: 'localIdentity' });
+  const roomSid = createElement(roomControlsDiv, { type: 'h3', id: 'roomSid' });
+  const localIdentity = createElement(roomControlsDiv, { type: 'h3', id: 'localIdentity' });
   const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
   roomNameInput.placeholder = 'Enter room name';
 
@@ -300,15 +300,15 @@ export function demo(Video, containerDiv) {
   function createTrackStats(track, container) {
     var statsContainer = createDiv(container, 'trackStats');
 
-    const readyState = createLabeledStat(statsContainer, 'mediaStreamTrack.readyState', {
+    const readyState = createLabeledStat(statsContainer, 'readyState', {
       className: 'readyState',
       useValueToStyle: true,
     });
-    const enabled = createLabeledStat(statsContainer, 'mediaStreamTrack.enabled', {
+    const enabled = createLabeledStat(statsContainer, 'enabled', {
       className: 'enabled',
       useValueToStyle: true,
     });
-    const muted = createLabeledStat(statsContainer, 'mediaStreamTrack.muted', {
+    const muted = createLabeledStat(statsContainer, 'muted', {
       className: 'muted',
       useValueToStyle: true,
     });
