@@ -4,87 +4,18 @@
 /* eslint-disable quotes */
 'use strict';
 
-import { Waveform } from './waveform.js';
+import { createButton, createDiv, createElement, createLabeledCheckbox, createSelection } from './controls';
+import { renderTrack, trackStatUpdater, updateTrackStats } from './renderTrack';
 import generateAudioTrack from '../../jsutilmodules/syntheticaudio.js';
 import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
+
 let number = 0;
-function getNextNumber() {
+export function getNextNumber() {
   return number++;
-}
-
-function createElement(container, { type, id, classNames }) {
-  const el = document.createElement(type);
-  if (id) {
-    el.id = id;
-  }
-  if (classNames) {
-    el.classList.add(...classNames);
-  }
-
-  container.appendChild(el);
-  return el;
-}
-
-function createDiv(container, divClass, id) {
-  divClass = Array.isArray(divClass) ? divClass : [divClass];
-  return createElement(container, { type: 'div', classNames: divClass, id });
 }
 
 function getChildDiv(container, divClass) {
   return container.querySelector('.' + divClass) || createDiv(container, divClass);
-}
-
-function createButton(text, container, onClick) {
-  const btn = createElement(container, { type: 'button', classNames: ['btn', 'btn-outline-primary', 'btn-sm'] });
-  btn.innerHTML = text;
-  btn.onclick = onClick;
-  return {
-    btn,
-    show: visible => {
-      btn.style.display = visible ? 'inline-block' : 'none';
-    },
-    text: newText => {
-      btn.innerHTML = newText;
-    },
-    click: () => onClick(),
-  };
-}
-function createSelection({ container, options = ["dog", "cat", "parrot", "rabbit"], title = "Pets", onChange = () => {} }) {
-  var select = document.createElement("select");
-  // select.name = "pets";
-  select.id = title + "_" + getNextNumber();
-
-  for (const val of options) {
-    var option = document.createElement("option");
-    option.value = val;
-    option.text = val;
-    select.appendChild(option);
-  }
-
-  var label = document.createElement("label");
-  label.innerHTML = title;
-  label.htmlFor = select.id;
-
-  select.addEventListener("change", onChange);
-
-  // var x = document.getElementById("mySelect").value
-
-  container.appendChild(label).appendChild(select);
-  return {
-    select,
-    getValue: () => { return select.value; },
-    setValue: value => { select.value = value; /* not if the value is not one of the options then a blank value gets selected */ }
-  };
-}
-
-function createLabeledCheckbox(container, labelText, id) {
-  const checkbox = createElement(container, { type: 'input', id });
-  checkbox.setAttribute('type', 'checkbox');
-
-  const label = createElement(container, { type: 'label' });
-  label.innerHTML = labelText;
-  label.setAttribute('for', id);
-  return checkbox;
 }
 
 let logClearBtn = null;
@@ -94,7 +25,7 @@ function createLog(containerDiv) {
   logDiv = createDiv(containerDiv, 'outerLog', 'log');
 }
 
-function log(...args) {
+export function log(...args) {
   if (!logClearBtn) {
     logClearBtn = createButton('clear log', logDiv, () => {
       realLogDiv.innerHTML = '';
@@ -120,38 +51,10 @@ export function demo(Video, containerDiv) {
   const localControls = createDiv(mainDiv, 'localControls', 'localControls');
   const localAudioTrackContainer = createDiv(localControls, 'audioTrackContainer', 'audioTrack');
   const localVideoTrackContainer = createDiv(localControls, 'videoTrackContainer', 'videoTrack');
-  const btnPreviewAudio = createElement(localAudioTrackContainer, {
-    type: 'button',
-    id: 'button-preview-audio',
-    classNames: ['btn', 'btn-primary', 'btn-block'],
-  });
-  btnPreviewAudio.innerHTML = 'Local Audio';
-
-  const btnSyntheticAudio = createElement(localAudioTrackContainer, {
-    type: 'button',
-    id: 'button-preview-audio2',
-    classNames: ['btn', 'btn-primary', 'btn-block'],
-  });
-  btnSyntheticAudio.innerHTML = 'Synthetic Audio';
-
-
-  const btnPreviewVideo = createElement(localVideoTrackContainer, {
-    type: 'button',
-    id: 'button-preview-video',
-    classNames: ['btn', 'btn-primary', 'btn-block'],
-  });
-  btnPreviewVideo.innerHTML = 'Local Video';
-
-  const btnSyntheticVideo = createElement(localVideoTrackContainer, {
-    type: 'button',
-    id: 'button-preview-video2',
-    classNames: ['btn', 'btn-primary', 'btn-block'],
-  });
-  btnSyntheticVideo.innerHTML = 'Synthetic Video';
-
   const roomControlsDiv = createDiv(localControls, 'room-controls', 'room-controls');
   const twilioVideoVersion = createElement(roomControlsDiv, { type: 'h3', id: 'twilioVideoVersion' });
   const topologySelect = createSelection({
+    id: 'topology',
     container: roomControlsDiv,
     options: ["group-small", "peer-to-peer", "group"],
     title: "topology",
@@ -159,6 +62,7 @@ export function demo(Video, containerDiv) {
   });
 
   const envSelect = createSelection({
+    id: 'env',
     container: roomControlsDiv,
     options: ["dev", "stage", "prod"],
     title: "env",
@@ -166,81 +70,19 @@ export function demo(Video, containerDiv) {
   });
 
   const roomSid = createElement(roomControlsDiv, { type: 'h3', id: 'roomSid' });
-  const localIdentity = createElement(roomControlsDiv, { type: 'h3', id: 'localIdentity' });
+  const localIdentity = createElement(roomControlsDiv, { type: 'input', id: 'localIdentity' });
   const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
+  localIdentity.placeholder = 'Enter identity or random name will be generated';
   roomNameInput.placeholder = 'Enter room name';
 
   const controlOptionsDiv = createDiv(roomControlsDiv, 'control-options', 'control-options');
 
-  const autoPublish = createLabeledCheckbox(controlOptionsDiv, 'Auto Publish', 'autoPublish');
-  const autoAttach = createLabeledCheckbox(controlOptionsDiv, 'Auto Attach', 'autoAttach');
-  const autoJoin = createLabeledCheckbox(controlOptionsDiv, 'Auto Join', 'autoJoin');
-
-  const btnJoin = createElement(roomControlsDiv, {
-    type: 'button',
-    id: 'button-join',
-    classNames: ['btn', 'btn-primary', 'btn-block'],
-  });
-  btnJoin.innerHTML = 'Join';
-  const btnLeave = createElement(roomControlsDiv, {
-    type: 'button',
-    id: 'button-leave',
-    classNames: ['btn', 'btn-primary', 'btn-block'],
-  });
-  btnLeave.innerHTML = 'Leave';
-
-  const remoteParticipantsContainer = createDiv(mainDiv, 'remote-participants', 'remote-participants');
-  twilioVideoVersion.innerHTML = 'Twilio-Video@' + Video.version;
-
-  // process parameters.
-  var urlParams = new URLSearchParams(window.location.search);
-  roomNameInput.value = urlParams.get('room');
-  autoAttach.checked = !urlParams.has('noAutoAttach');
-  autoPublish.checked = !urlParams.has('noAutoPublish');
-  autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
-  topologySelect.setValue(urlParams.get('topology') || "group-small");
-  envSelect.setValue(urlParams.get('env') || "prod");
-
-  const { protocol, host, pathname } = window.location;
-  console.log({ protocol, host, pathname });
-
-  let token = urlParams.get('token') || `${protocol}//${host}/token`;
-  let tokenUrl = null;
-
-  if (token.indexOf('http') >= 0) {
-    tokenUrl = token;
-    token = null;
-  } else if (token === 'default') {
-    tokenUrl = `${protocol}//${host}/token`;
-    token = null;
-  } else if (token === 'local') {
-    tokenUrl = 'http://localhost:3000/token';
-    token = null;
-  } else {
-    // if real token is part of the url delete it.
-    urlParams.delete('token');
-    window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
-  }
+  // container, labelText, id
+  const autoPublish = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Auto Publish', id: 'autoPublish' });
+  const autoAttach = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Auto Attach', id: 'autoAttach' });
+  const autoJoin = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Auto Join', id: 'autoJoin' });
 
   var activeRoom;
-  const localTracks = [];
-
-  /**
-   * Get the Room credentials from the server.
-   * @param {string} [identity] identity to use, if not specified server generates random one.
-   * @returns {Promise<{identity: string, token: string}>}
-   */
-  async function getRoomCredentials(tokenUrl) {
-    const topology = topologySelect.getValue();
-    const environment = envSelect.getValue();
-    const roomName = roomNameInput.value;
-
-    let url = new URL(tokenUrl);
-    url.search = new URLSearchParams({ environment, topology, roomName });
-    const response = await fetch(url); // /?tokenUrl=http://localhost:3000/token
-    return response.json();
-  }
-
   const roomChangeCallbacks = [];
   class RoomChanged {
     register(callback) {
@@ -266,102 +108,127 @@ export function demo(Video, containerDiv) {
   }
 
   const roomChangeMonitor = new RoomChanged();
+  const btnJoin = createButton('Join', roomControlsDiv, () => {
+    getTokenAndJoinRoom();
+  });
+
+  const btnLeave = createButton('Leave', roomControlsDiv, () => {
+    log('Leaving room...');
+    activeRoom.disconnect();
+    roomChangeMonitor.emitRoomChange(null);
+  });
+
+  const remoteParticipantsContainer = createDiv(mainDiv, 'remote-participants', 'remote-participants');
+  twilioVideoVersion.innerHTML = 'Twilio-Video@' + Video.version;
+
+  function getBooleanUrlParam(urlParams, paramName, defaultValue) {
+    if (urlParams.has(paramName)) {
+      const paramValue = urlParams.get(paramName);
+      if (paramValue.length === 0) {
+        return true; // &autoJoin&foo should return autoJoin = true;
+      }
+      if (!paramValue || paramValue.toLowerCase() === 'false') {
+        return false;
+      }
+
+      return true;
+    }
+    return defaultValue;
+  }
+
+  // process parameters.
+  var urlParams = new URLSearchParams(window.location.search);
+  roomNameInput.value = urlParams.get('room');
+  localIdentity.value = urlParams.get('identity');
+  autoAttach.checked = getBooleanUrlParam(urlParams, 'autoAttach', true);
+  autoPublish.checked = getBooleanUrlParam(urlParams, 'autoPublish', true);
+  autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
+  topologySelect.setValue(urlParams.get('topology') || "group-small");
+  envSelect.setValue(urlParams.get('env') || "prod");
+  const autoAudio = getBooleanUrlParam(urlParams, 'autoAudio', false);
+  const autoVideo = getBooleanUrlParam(urlParams, 'autoVideo', false);
+
+  const { protocol, host, pathname } = window.location;
+  console.log({ protocol, host, pathname });
+
+  let token = urlParams.get('token') || `${protocol}//${host}/token`;
+  let tokenUrl = null;
+
+
+  if (token.indexOf('http') >= 0) {
+    tokenUrl = token;
+    token = null;
+  } else if (token === 'default') {
+    tokenUrl = `${protocol}//${host}/token`;
+    token = null;
+  } else if (token === 'local') {
+    tokenUrl = 'http://localhost:3000/token';
+    token = null;
+  } else {
+    // if real token is part of the url delete it.
+    urlParams.delete('token');
+    window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
+  }
+
+  createButton('testPreflight', roomControlsDiv, async () => {
+    const aliceToken = (await getRoomCredentials(tokenUrl)).token;
+    const bobToken = (await getRoomCredentials(tokenUrl)).token;
+    const preflightTest = Video.testPreflight(aliceToken, bobToken);
+    preflightTest.on('completed', report => {
+      console.log(report);
+    });
+  });
+
+  const btnPreviewAudio = createButton('Local Audio', localAudioTrackContainer, async () => {
+    const thisTrackName = 'mic-' + getNextNumber();
+    const localTrack = await Video.createLocalAudioTrack({ logLevel: 'warn', name: thisTrackName });
+    await renderLocalTrack(localTrack);
+  });
+
+  const btnSyntheticAudio = createButton('Synthetic Audio', localAudioTrackContainer, async () => {
+    const thisTrackName = 'Audio-' + getNextNumber();
+    const msTrack = await generateAudioTrack(10);
+    const localTrack = new Video.LocalAudioTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
+    renderLocalTrack(localTrack);
+  });
+
+  const btnPreviewVideo = createButton('Local Video', localVideoTrackContainer, async () => {
+    const thisTrackName = 'camera-' + getNextNumber();
+    const localTrack = await Video.createLocalVideoTrack({ logLevel: 'warn', name: thisTrackName });
+    await renderLocalTrack(localTrack);
+  });
+
+  const btnSyntheticVideo = createButton('Synthetic Video', localVideoTrackContainer, async () => {
+    const canvas = document.createElement('canvas');
+    const thisTrackName = 'Video-' + getNextNumber();
+    const msTrack = await generateVideoTrack(canvas, thisTrackName);
+    const localTrack = new Video.LocalVideoTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
+    renderLocalTrack(localTrack);
+  });
+
+  const localTracks = [];
 
   /**
-   * Attach the AudioTrack to the HTMLAudioElement and start the Waveform.
+   * Get the Room credentials from the server.
+   * @param {string} [identity] identity to use, if not specified server generates random one.
+   * @returns {Promise<{identity: string, token: string}>}
    */
-  function attachAudioTrack(track, container) {
-    var audioElement = container.appendChild(track.attach());
-    const waveform = new Waveform();
-    waveform.setStream(audioElement.srcObject);
-    const canvasContainer = createDiv(container, 'canvasContainer');
-    canvasContainer.appendChild(waveform.element);
-    return audioElement;
-  }
+  async function getRoomCredentials(tokenUrl) {
+    const topology = topologySelect.getValue();
+    const environment = envSelect.getValue();
+    const roomName = roomNameInput.value;
 
-  // styleMap uses the values to decide the style.
-  function createLabeledStat(container, label, { id, className, useValueToStyle = false }) {
-    const el = createElement(container, { type: 'p', id, classNames: [className, 'labeledStat'] });
-    let lastText = null;
-    return {
-      setText: text => {
-        if (useValueToStyle && lastText !== null) {
-          el.classList.remove(`${className}_${lastText}`);
-        }
-        el.textContent = label + ': ' + text;
-        if (useValueToStyle) {
-          el.classList.add(`${className}_${text}`);
-          lastText = text;
-        }
-      },
-    };
-  }
-
-  function createTrackStats(track, container) {
-    var statsContainer = createDiv(container, 'trackStats');
-
-    const readyState = createLabeledStat(statsContainer, 'readyState', {
-      className: 'readyState',
-      useValueToStyle: true,
-    });
-    const enabled = createLabeledStat(statsContainer, 'enabled', {
-      className: 'enabled',
-      useValueToStyle: true,
-    });
-    const muted = createLabeledStat(statsContainer, 'muted', {
-      className: 'muted',
-      useValueToStyle: true,
-    });
-    const started = createLabeledStat(statsContainer, 'Track.started', { className: 'started', useValueToStyle: true });
-    const trackEnabled = createLabeledStat(statsContainer, 'Track.enabled', {
-      className: 'enabled',
-      useValueToStyle: true,
-    });
-    const bytes = createLabeledStat(statsContainer, 'bytes', { className: 'bytes', useValueToStyle: true });
-    bytes.setText('0');
-
-    function listenOnMSTrack(msTrack) {
-      msTrack.addEventListener('ended', () => updateStats('ended'));
-      msTrack.addEventListener('mute', () => updateStats('mute'));
-      msTrack.addEventListener('unmute', () => updateStats('unmute'));
+    let url = new URL(tokenUrl);
+    const tokenOptions = { environment, topology, roomName };
+    // if identity is specified use it.
+    if (localIdentity.value) {
+      tokenOptions.identity = localIdentity.value;
     }
-
-    track.on('disabled', () => updateStats('disabled'));
-    track.on('enabled', () => updateStats('enabled'));
-    track.on('stopped', () => {
-      updateStats('stopped');
-    });
-
-    track.on('started', () => {
-      updateStats('started');
-      listenOnMSTrack(track.mediaStreamTrack);
-    });
-
-    function updateStats(event, byteUpdate) {
-      if (event === 'bytes') {
-        bytes.setText(byteUpdate);
-      } else {
-        log(`${track.sid || track.id} got: ${event}`);
-        readyState.setText(track.mediaStreamTrack.readyState);
-        enabled.setText(track.mediaStreamTrack.enabled);
-        started.setText(track.isStarted);
-        muted.setText(track.mediaStreamTrack.muted);
-        trackEnabled.setText(track.isEnabled);
-      }
-    }
-
-    return updateStats;
+    url.search = new URLSearchParams(tokenOptions);
+    const response = await fetch(url); // /?tokenUrl=http://localhost:3000/token
+    return response.json();
   }
 
-  const trackStatUpdater = new Map();
-  function updateTrackStats({ trackId, trackSid, bytesSent, bytesReceived, trackType }) {
-    const isRemote = trackType === 'remoteVideoTrackStats' || trackType === 'remoteAudioTrackStats';
-    trackStatUpdater.forEach((updateStats, track) => {
-      if (track.sid === trackSid || track.id === trackId) {
-        updateStats('bytes', isRemote ? bytesReceived : bytesSent);
-      }
-    });
-  }
 
   function renderTrackPublication(trackPublication, container) {
     const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
@@ -372,147 +239,89 @@ export function demo(Video, containerDiv) {
     trackSid.innerHTML = trackPublication.trackSid;
 
     if (trackPublication.isSubscribed) {
-      renderTrack(trackPublication.track, publicationContainer);
+      renderTrack({
+        track: trackPublication.track,
+        container: publicationContainer,
+        shouldAutoAttach: autoAttach.checked,
+      });
     } else {
       console.log('not subscribed:', trackPublication);
     }
     trackPublication.on('subscribed', function(track) {
       log('Subscribed to ' + trackPublication.kind + ' track');
-      renderTrack(track, publicationContainer);
+      renderTrack({
+        track: track,
+        container: publicationContainer,
+        shouldAutoAttach: autoAttach.checked,
+      });
     });
     trackPublication.on('unsubscribed', track => detachTrack(track, publicationContainer));
     return publicationContainer;
   }
 
-  // Attach the Track to the DOM.
-  function renderTrack(track, container, isLocal) {
-    track.on('dimensionsChanged', (...args) => {
-      log('dimensionsChanged', ...args);
+  window.tracks = [];
+  function renderLocalTrack(track) {
+    const shouldAutoAttach = autoAttach.checked;
+    const shouldAutoPublish = autoPublish.checked;
+    localTracks.push(track);
+    const onRenderClosed = track => {
+      const index = localTracks.indexOf(track);
+      if (index > -1) {
+        localTracks.splice(index, 1);
+      }
+    };
+
+    const container = track.kind === 'video' ? localVideoTrackContainer : localAudioTrackContainer;
+    window.tracks.push(track);
+    const { trackContainer } = renderTrack({ track, container, shouldAutoAttach });
+
+    createButton('disable', trackContainer, () => track.disable());
+    createButton('enable', trackContainer, () => track.enable());
+    createButton('stop', trackContainer, () => track.stop());
+    createButton('msstop', trackContainer, () => {
+      track.mediaStreamTrack.stop();
     });
-    console.log(`track.sid:${track.sid}, track.id:${track.id}`);
-    const trackContainerId = isLocal ? track.id : track.sid;
-    const trackContainer = createDiv(container, track.kind + 'Container', trackContainerId);
-    const updateStats = createTrackStats(track, trackContainer, isLocal);
-    trackStatUpdater.set(track, updateStats);
 
-    const controlContainer = createDiv(trackContainer, 'trackControls');
+    let trackPublication = null;
+    let unPublishBtn = null;
+    const publishBtn = createButton('publish', trackContainer, async () => {
+      trackPublication = await roomChangeMonitor.room.localParticipant.publishTrack(track);
+      publishBtn.show(!trackPublication);
+      unPublishBtn.show(!!trackPublication);
+    });
 
-    if (isLocal) {
-      localTracks.push(track);
-
-      createButton('disable', controlContainer, () => track.disable());
-      createButton('enable', controlContainer, () => track.enable());
-      createButton('stop', controlContainer, () => track.stop());
-      createButton('msstop', controlContainer, () => {
-        track.mediaStreamTrack.stop();
-        updateStats();
-      });
-
-      let trackPublication = null;
-      let unPublishBtn = null;
-      const publishBtn = createButton('publish', controlContainer, async () => {
-        trackPublication = await activeRoom.localParticipant.publishTrack(track);
+    unPublishBtn = createButton('unpublish', trackContainer, () => {
+      if (trackPublication) {
+        trackPublication.unpublish();
+        trackPublication = null;
         publishBtn.show(!trackPublication);
         unPublishBtn.show(!!trackPublication);
-      });
-
-      unPublishBtn = createButton('unpublish', controlContainer, () => {
-        if (trackPublication) {
-          trackPublication.unpublish();
-          trackPublication = null;
-          publishBtn.show(!trackPublication);
-          unPublishBtn.show(!!trackPublication);
-        }
-      });
-
-      const onRoomChanged = room => {
-        if (room) {
-          trackPublication = [...room.localParticipant.tracks.values()].find(trackPub => trackPub.track === track);
-        }
-        publishBtn.show(room && !trackPublication);
-        unPublishBtn.show(room && !!trackPublication);
-      };
-
-      // show hide publish button on room joining/leaving.
-      roomChangeMonitor.register(onRoomChanged);
-
-      // if autoPublish and room exits, publish the track
-      if (roomChangeMonitor.room && autoPublish.checked) {
-        publishBtn.click();
-      }
-
-      createButton('close', controlContainer, () => {
-        var index = localTracks.indexOf(track);
-        if (index > -1) {
-          localTracks.splice(index, 1);
-        }
-        trackContainer.remove();
-        roomChangeMonitor.unregister(onRoomChanged);
-      });
-    }
-
-    createButton('update', controlContainer, () => updateStats('update'));
-
-    let mediaControls = null;
-    const attachDetachBtn = createButton('attach', controlContainer, () => {
-      if (mediaControls) {
-        // track is already attached.
-        track.detach().forEach(el => el.remove());
-        mediaControls.remove();
-        mediaControls = null;
-        attachDetachBtn.text('attach');
-      } else {
-        // track is detached.
-        mediaControls = createDiv(trackContainer, 'mediaControls');
-        let audioVideoElement = null;
-        if (track.kind === 'audio') {
-          audioVideoElement = attachAudioTrack(track, mediaControls);
-        } else {
-          audioVideoElement = track.attach();
-          mediaControls.appendChild(audioVideoElement);
-        }
-        createButton('pause', mediaControls, () => audioVideoElement.pause());
-        createButton('play', mediaControls, () => audioVideoElement.play());
-        createButton('update', mediaControls, () => updateMediaElementState('update'));
-        const isPlaying = createLabeledStat(mediaControls, 'playing', { className: 'enabled', useValueToStyle: true });
-        const volume = createLabeledStat(mediaControls, 'volume', { className: 'bytes', useValueToStyle: true });
-        // eslint-disable-next-line no-inner-declarations
-        function updateMediaElementState(event) {
-          log(`${track.sid || track.id} got: ${event}`);
-          isPlaying.setText(!audioVideoElement.paused);
-          volume.setText(audioVideoElement.volume);
-        }
-
-        audioVideoElement.addEventListener('pause', () => updateMediaElementState('pause'));
-        audioVideoElement.addEventListener('play', () => updateMediaElementState('play'));
-        attachDetachBtn.text('detach');
-        updateMediaElementState('initial');
       }
     });
-    if (autoAttach.checked) {
-      attachDetachBtn.click();
+
+    const onRoomChanged = room => {
+      if (room) {
+        trackPublication = [...room.localParticipant.tracks.values()].find(trackPub => trackPub.track === track);
+      }
+      publishBtn.show(room && !trackPublication);
+      unPublishBtn.show(room && !!trackPublication);
+    };
+
+    // show hide publish button on room joining/leaving.
+    roomChangeMonitor.register(onRoomChanged);
+
+    // if autoPublish and room exits, publish the track
+    if (roomChangeMonitor.room && shouldAutoPublish) {
+      publishBtn.click();
     }
-    updateStats('initial');
-    return trackContainer;
-  }
 
-  window.tracks = [];
-  function renderLocalTrack(localTrack) {
-    const container = localTrack.kind === 'video' ? localVideoTrackContainer : localAudioTrackContainer;
-    window.tracks.push(localTrack);
-    const trackContainer = renderTrack(localTrack, container, true);
-    console.log('localTracks.length:', localTracks.length);
-
-    createButton('clone', trackContainer, () => {
-      const clonedMSTrack = localTrack.mediaStreamTrack.clone();
-      const cloneBtn = createButton(' stop clone', trackContainer, () => {
-        clonedMSTrack.stop();
-        cloneBtn.btn.remove();
-      });
-      const cloned = new Video.LocalAudioTrack(clonedMSTrack);
-      renderTrack(cloned, container, true);
+    createButton('close', trackContainer, () => {
+      onRenderClosed();
+      trackContainer.remove();
+      roomChangeMonitor.unregister(onRoomChanged);
     });
   }
+
 
   // Detach given track from the DOM.
   function detachTrack(track, container) {
@@ -599,15 +408,18 @@ export function demo(Video, containerDiv) {
 
   function updateControls(connected) {
     roomSid.innerHTML = connected ? activeRoom.sid : 'Room: Not Joined';
-    localIdentity.innerHTML = connected ? activeRoom.localParticipant.identity : 'Identity: Unknown';
+    if (connected) {
+      localIdentity.value = activeRoom.localParticipant.identity;
+    }
+
     roomControlsDiv.style.display = 'block';
 
     [btnLeave].forEach(btn => {
-      btn.disabled = connected === false;
+      btn.show(connected);
     });
 
     [btnJoin].forEach(btn => {
-      btn.disabled = connected === true;
+      btn.show(!connected);
     });
 
     [btnPreviewAudio, btnPreviewVideo, btnSyntheticAudio, btnSyntheticVideo].forEach(btn => {
@@ -634,15 +446,15 @@ export function demo(Video, containerDiv) {
   (function main() {
     updateControls(false);
     roomChangeMonitor.emitRoomChange(null);
-    btnLeave.onclick = function() {
-      log('Leaving room...');
-      activeRoom.disconnect();
-      roomChangeMonitor.emitRoomChange(null);
-    };
 
-    btnJoin.onclick = () => getTokenAndJoinRoom();
+    if (autoAudio) {
+      btnPreviewAudio.click();
+    }
+    if (autoVideo) {
+      btnPreviewVideo.click();
+    }
     if (autoJoin.checked) {
-      btnJoin.onclick();
+      btnJoin.click();
     }
   }());
 
@@ -701,35 +513,6 @@ export function demo(Video, containerDiv) {
       updateControls(false);
     });
   }
-
-
-  btnPreviewAudio.onclick = async () => {
-    const thisTrackName = 'mic-' + getNextNumber();
-    const localTrack = await Video.createLocalAudioTrack({ logLevel: 'warn', name: thisTrackName });
-    await renderLocalTrack(localTrack);
-  };
-
-  btnSyntheticAudio.onclick = async () => {
-    const thisTrackName = 'Audio-' + getNextNumber();
-    const msTrack = await generateAudioTrack(10);
-    const localTrack = new Video.LocalAudioTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
-    renderLocalTrack(localTrack);
-  };
-
-  btnPreviewVideo.onclick = async () => {
-    const thisTrackName = 'camera-' + getNextNumber();
-    const localTrack = await Video.createLocalVideoTrack({ logLevel: 'warn', name: thisTrackName });
-    await renderLocalTrack(localTrack);
-  };
-
-
-  btnSyntheticVideo.onclick = async () => {
-    const canvas = document.createElement('canvas');
-    const thisTrackName = 'Video-' + getNextNumber();
-    const msTrack = await generateVideoTrack(canvas, thisTrackName);
-    const localTrack = new Video.LocalVideoTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
-    renderLocalTrack(localTrack);
-  };
 
   // Leave Room.
   function leaveRoomIfJoined() {
