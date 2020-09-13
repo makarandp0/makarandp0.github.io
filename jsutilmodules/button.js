@@ -7,6 +7,8 @@ export default function createButton(text, container, onClick) {
     btn,
     show: visible => { btn.style.display = visible ? 'inline-block' : 'none'; },
     text: newText => { btn.innerHTML = newText; },
-    click: () => onClick()
+    click: () => onClick(),
+    enable: () => { btn.disabled = false; },
+    disable: () => { btn.disabled = true; }
   };
 }

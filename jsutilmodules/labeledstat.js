@@ -1,15 +1,4 @@
-function createElement(container, { type, id, classNames }) {
-  const el = document.createElement(type);
-  if (id) {
-    el.id = id;
-  }
-  if (classNames) {
-    el.classList.add(...classNames);
-  }
-
-  container.appendChild(el);
-  return el;
-}
+import { createElement } from './createElement.js';
 
 export default function createLabeledStat(container, label, { id, className, useValueToStyle = false }) {
   const el = createElement(container, { type: 'p', id, classNames: [className, 'labeledStat'] });

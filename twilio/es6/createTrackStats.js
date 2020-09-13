@@ -1,5 +1,4 @@
-import { createDiv, createLabeledStat } from './controls';
-import { log } from './videoapidemo';
+import { createDiv, createLabeledStat } from './controls.js';
 export function createTrackStats(track, container) {
   var statsContainer = createDiv(container, 'trackStats');
 
@@ -44,7 +43,6 @@ export function createTrackStats(track, container) {
     if (event === 'bytes') {
       bytes.setText(byteUpdate);
     } else {
-      log(`${track.sid || track.id} got: ${event}`);
       readyState.setText(track.mediaStreamTrack.readyState);
       enabled.setText(track.mediaStreamTrack.enabled);
       started.setText(track.isStarted);

@@ -1,7 +1,6 @@
-import { createButton, createDiv, createLabeledStat } from './controls';
+import { createButton, createDiv, createLabeledStat } from './controls.js';
 import { Waveform } from './waveform.js';
-import { createTrackStats } from './createTrackStats';
-import { log } from './videoapidemo';
+import { createTrackStats } from './createTrackStats.js';
 
 export const trackStatUpdater = new Map();
 
@@ -28,7 +27,6 @@ export function attachAudioTrack(track, container) {
 
 // Attach the Track to the DOM.
 export function renderTrack({ track, container, shouldAutoAttach }) {
-  track.on('dimensionsChanged', (...args) => log('dimensionsChanged', ...args));
   const trackContainerId = track.sid || track.id;
   const trackContainer = createDiv(container, track.kind + 'Container', trackContainerId);
   const { updateStats } = createTrackStats(track, trackContainer);
@@ -62,8 +60,7 @@ export function renderTrack({ track, container, shouldAutoAttach }) {
       const isPlaying = createLabeledStat(mediaControls, 'playing', { className: 'enabled', useValueToStyle: true });
       const volume = createLabeledStat(mediaControls, 'volume', { className: 'bytes', useValueToStyle: true });
       // eslint-disable-next-line no-inner-declarations
-      function updateMediaElementState(event) {
-        log(`${track.sid || track.id} got: ${event}`);
+      function updateMediaElementState() {
         isPlaying.setText(!audioVideoElement.paused);
         volume.setText(audioVideoElement.volume);
       }

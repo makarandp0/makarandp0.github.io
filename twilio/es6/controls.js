@@ -30,6 +30,12 @@ export function createButton(text, container, onClick) {
       btn.innerHTML = newText;
     },
     click: () => onClick(),
+    enable: () => {
+      btn.disabled = false;
+    },
+    disable: () => {
+      btn.disabled = true;
+    }
   };
 }
 
