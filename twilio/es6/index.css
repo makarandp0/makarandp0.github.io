@@ -1,4 +1,7 @@
-@import url(https://fonts.googleapis.com/css?family=Share+Tech+Mono);
+button {
+  height: 2em;
+  margin: 5px;
+}
 
 div#controls {
   display: flex;

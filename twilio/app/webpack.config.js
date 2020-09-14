@@ -10,10 +10,13 @@ module.exports = {
       },
     ],
   },
-  entry: './src/index.js',
+  entry: {
+    app: './src/app.js',
+    admin: './src/admin.js'
+  },
   output: {
-    filename: 'main.js',
-    path: path.resolve(__dirname, 'dist'),
+    filename: '[name].js',
+    path: path.resolve(__dirname, './dist'),
   },
   devtool: 'inline-source-map',
   devServer: {

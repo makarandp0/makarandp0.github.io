@@ -315,11 +315,17 @@ export function demo(Video, containerDiv) {
       publishBtn.click();
     }
 
-    createButton('close', trackContainer, () => {
+    const closeBtn = createButton('close', trackContainer, () => {
       onRenderClosed();
       trackContainer.remove();
       roomChangeMonitor.unregister(onRoomChanged);
     });
+
+    return {
+      closeBtn,
+      unPublishBtn,
+      publishBtn,
+    };
   }
 
 
@@ -423,7 +429,7 @@ export function demo(Video, containerDiv) {
     });
 
     [btnPreviewAudio, btnPreviewVideo, btnSyntheticAudio, btnSyntheticVideo].forEach(btn => {
-      btn.disabled = false;
+      btn.enable();
     });
   }
 

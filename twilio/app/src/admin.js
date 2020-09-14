@@ -1,9 +1,9 @@
 import Video from 'twilio-video';
-import { loadVideoAndDemo } from '../../es6/loadVideoAndDemo';
+import { demo } from '../../es6/chrome87issue.js';
 
 // load css
 // eslint-disable-next-line sort-imports
 import '../../es6/index.css';
-
-loadVideoAndDemo(Video, document.body);
+console.log('loaded admin.js');
+demo(Video, document.body);
 

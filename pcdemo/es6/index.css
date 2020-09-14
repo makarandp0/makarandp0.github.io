@@ -2,17 +2,26 @@
 
 .pc {
   display: flex;
-  color: white;
   margin: 20px;
   padding: 20px;
 }
 
 .sdp {
-  color: burlywood;
   margin: 2px;
   padding: 2px;
   width: 400px;
   height: 400px;
+}
+
+.controls {
+  margin: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sdpDiv {
+  display: flex;
+  flex-direction: column;
 }
 
 video {
