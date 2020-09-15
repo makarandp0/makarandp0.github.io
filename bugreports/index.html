@@ -1,0 +1,27 @@
+<html>
+  <body>
+    This code is hosted <a href="https://github.com/makarandp0/makarandp0.github.io/tree/master/bugreports">here</a>.
+    <div id="contents"></div>
+    <script>
+      (() => {
+        try {
+          const data = [
+            { path: "./chrome_issue_1127625/index.html", name: "chrome_issue_1127625" },
+          ];
+          let htmlString = '<ul>';
+
+          for (let file of data) {
+            console.log(file);
+            htmlString += `<li><a href="${file.path}">${file.name}</a></li>`;
+          }
+          htmlString += '</ul>';
+          document.getElementById('contents').innerHTML = htmlString;
+          } catch (err) {
+            document.getElementById('contents').innerHTML = "Error: " + err
+          }
+      })()
+    </script>
+  <body>
+</html>
+
+
