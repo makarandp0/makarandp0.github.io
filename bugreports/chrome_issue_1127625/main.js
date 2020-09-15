@@ -20,7 +20,7 @@ const steps = "This sample helps demonstrate the chrome 86+ issue\r\n  \
   Step 13: Bob SetLocalDescription\r\n \
   Step 14: Alice SetRemoteDescription\r\n \
   Step 15: Bob CreateOffer\r\n \
-  Step 16: Bob SetRemoteDescription\r\n \
+  Step 16: Bob SetLocalDescription\r\n \
 ";
 console.log(steps);
 
