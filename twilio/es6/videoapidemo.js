@@ -4,10 +4,12 @@
 /* eslint-disable quotes */
 'use strict';
 
-import { createButton, createDiv, createElement, createLabeledCheckbox, createSelection } from './controls';
-import { renderTrack, trackStatUpdater, updateTrackStats } from './renderTrack';
+import { createButton, createDiv, createElement, createSelection } from './controls.js';
+import { renderTrack, trackStatUpdater, updateTrackStats } from './renderTrack.js';
+import { createLabeledCheckbox } from "../../jsutilmodules/createLabeledCheckbox.js";
 import generateAudioTrack from '../../jsutilmodules/syntheticaudio.js';
 import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
+import { getDeviceSelectionOptions } from '../../jsutilmodules/getDeviceSelectionOptions.js';
 
 let number = 0;
 export function getNextNumber() {
@@ -198,6 +200,34 @@ export function demo(Video, containerDiv) {
     await renderLocalTrack(localTrack);
   });
 
+  let deviceNumber = 0;
+  let newTrack = null;
+  let devices = null;
+  createButton('Quick Video', localVideoTrackContainer, async () => {
+    console.log('checking');
+
+    if (!devices) {
+      devices = await getDeviceSelectionOptions();
+    }
+
+    deviceNumber++;
+    const deviceIndex = deviceNumber % devices.videoinput.length;
+    const deviceId =  devices.videoinput[deviceIndex].deviceId;
+
+    console.log('done checking');
+    console.log(devices);
+    const thisTrackName = 'Joe Doe';
+    if (!newTrack) {
+      console.log('creating video track');
+      const newTracks = await Video.createLocalTracks({ audio: true, video: { deviceId: { exact: deviceId }, name: thisTrackName } });
+      newTrack = newTracks.find(t => t.kind === 'video');
+      await renderLocalTrack(newTrack);
+    } else {
+      console.log('calling restart');
+      await newTrack.restart({ deviceId: { exact: deviceId } });
+    }
+  });
+
   const btnSyntheticVideo = createButton('Synthetic Video', localVideoTrackContainer, async () => {
     const canvas = document.createElement('canvas');
     const thisTrackName = 'Video-' + getNextNumber();
@@ -248,7 +278,7 @@ export function demo(Video, containerDiv) {
       console.log('not subscribed:', trackPublication);
     }
     trackPublication.on('subscribed', function(track) {
-      log('Subscribed to ' + trackPublication.kind + ' track');
+      log(`Subscribed to ${trackPublication.kind}:${track.name}`);
       renderTrack({
         track: track,
         container: publicationContainer,

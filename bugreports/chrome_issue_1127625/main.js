@@ -1,5 +1,29 @@
 /* eslint-disable quotes */
 /* eslint-disable no-console */
+
+const steps = "This sample helps demonstrate the chrome 86+ issue\r\n  \
+  https://bugs.chromium.org/p/chromium/issues/detail?id=1127625\r\n \
+  which results in SLD failing with \r\n \
+  Failed to execute 'setLocalDescription' on 'RTCPeerConnection': Failed to set local offer sdp: Unknown transceiver\r\n \
+  Step  1: Alice Add Track\r\n \
+  Step  2: Alice Create Offer\r\n \
+  Step  3: Alice SetLocalDescription\r\n \
+  Step  4: Bob SetRemoteDescription\r\n \
+  Step  5: Bob Create Answer\r\n \
+  Step  6: Bob SetLocalDescription\r\n \
+  Step  7: Alice SetRemoteDescription\r\n \
+  Step  8: Alice create Offer\r\n \
+  Step  9: Update Alice's offer video m-line - change port to 0\r\n \
+  Step 10: Alice SetLocalDescription\r\n \
+  Step 11: Bob SetRemoteDescription\r\n \
+  Step 12: Bob CreateAnswer\r\n \
+  Step 13: Bob SetLocalDescription\r\n \
+  Step 14: Alice SetRemoteDescription\r\n \
+  Step 15: Bob CreateOffer\r\n \
+  Step 16: Bob SetRemoteDescription\r\n \
+";
+console.log(steps);
+
 import createButton from '../../jsutilmodules/button.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import { createLabeledCheckbox } from '../../jsutilmodules/createLabeledCheckbox.js';
@@ -91,7 +115,7 @@ function managePC({ parentDiv, myName }) {
     }
   });
 
-  createButton('Rollback', controlDiv, async () => {
+  createButton('rollback', controlDiv, async () => {
     try {
       const sdp = {
         type: 'rollback',
@@ -124,7 +148,7 @@ function managePC({ parentDiv, myName }) {
     } catch (e) {
       console.warn(`${myName}:add/remove track failed`, e);
     }
-    trackButton.text(trackSender ? 'Remove Track' : 'Add Track');
+    trackButton.text(trackSender ? 'remove Track' : 'add Track');
   });
 
   const mediaDiv = createElement(myDiv, { type: 'div', classNames: ['localVideo'] });
@@ -198,7 +222,6 @@ function managePC({ parentDiv, myName }) {
 
 export function main(containerDiv) {
   const demoButton = createButton('Demo', containerDiv, () => {
-    console.log('Started Demo!');
     window.testPCs = {};
     const alicePCManager = managePC({ myName: 'Alice', parentDiv: containerDiv });
     const bobPCManager = managePC({ myName: 'Bob', parentDiv: containerDiv });

@@ -4,7 +4,7 @@
 /* eslint-disable quotes */
 'use strict';
 console.log('loaded twilio/es6/chrome87issue.js');
-import { createButton, createDiv, createElement, createLabeledCheckbox, createSelection } from './controls';
+import { createButton, createDiv, createElement } from './controls';
 import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
 
 let number = 0;
@@ -40,85 +40,63 @@ export function log(...args) {
 
 export function demo(Video, containerDiv) {
   // create html
-  const mainDiv = createDiv(containerDiv, 'main', 'main');
+  const mainDiv = createDiv(containerDiv, 'foo', 'foo');
   createLog(containerDiv);
-  const twilioVideoVersion = createElement(mainDiv, { type: 'h3', id: 'twilioVideoVersion' });
-  const topologySelect = createSelection({
-    id: 'topology',
-    container: mainDiv,
-    options: ["group-small", "peer-to-peer", "group"],
-    title: "topology",
-    onChange: () => console.log('topology change:', topologySelect.getValue())
-  });
 
-  const envSelect = createSelection({
-    id: 'env',
-    container: mainDiv,
-    options: ["dev", "stage", "prod"],
-    title: "env",
-    onChange: () => console.log('env change:', envSelect.getValue())
-  });
+  const link = createElement(mainDiv, { type: 'a' });
+  link.setAttribute('href', 'https://bugs.chromium.org/p/chromium/issues/detail?id=1127625#c12');
+  link.innerHTML = 'Chrome bug 1127625: setLocalDescription fails with Unknown transceiver';
+
+  const twilioVideoVersion = createElement(mainDiv, { type: 'h2', id: 'twilioVideoVersion' });
+  twilioVideoVersion.innerHTML = 'Twilio-Video@' + Video.version;
 
   const roomSid = createElement(mainDiv, { type: 'h3', id: 'roomSid' });
+
   const roomNameInput = createElement(mainDiv, { type: 'input', id: 'room-name' });
   roomNameInput.placeholder = 'Enter room name';
-  twilioVideoVersion.innerHTML = 'Twilio-Video@' + Video.version;
 
   // process parameters.
   var urlParams = new URLSearchParams(window.location.search);
   roomNameInput.value = urlParams.get('room');
-  topologySelect.setValue(urlParams.get('topology') || "group-small");
-  envSelect.setValue(urlParams.get('env') || "prod");
 
-  const { protocol, host, pathname } = window.location;
-  console.log({ protocol, host, pathname });
+  const { protocol, host } = window.location;
   let tokenUrl = `${protocol}//${host}/token`;
-  createButton('sdpdemo', mainDiv, async () => {
+
+  createButton('repro', mainDiv, async () => {
     const aliceToken = (await getRoomCredentials(tokenUrl)).token;
     const bobToken = (await getRoomCredentials(tokenUrl)).token;
     const roomName = roomNameInput.value;
     const connectOptions = {
       name: roomName,
       logLevel: 'warn',
-      environment: envSelect.getValue()
+      environment: 'prod'
     };
 
     // publish track simultaneously in both rooms.
     const aliceTrack = await generateVideoTrack(document.createElement('canvas'), 'Alice-' + getNextNumber());
     const aliceLocalTrack = new Video.LocalVideoTrack(aliceTrack, { logLevel: 'warn', name: aliceTrack });
     const aliceRoom = await Video.connect(aliceToken, { ...connectOptions, tracks: [aliceLocalTrack] });
+    roomSid.innerHTML = aliceRoom.sid;
+    console.log('Alice joined the room with video track');
 
     const bobTrack = await generateVideoTrack(document.createElement('canvas'), 'Bob-' + getNextNumber());
     const bobLocalTrack = new Video.LocalVideoTrack(bobTrack, { logLevel: 'warn', name: aliceTrack });
-    const bobRoom = await Video.connect(bobToken, { ...connectOptions, tracks: [aliceLocalTrack] });
+    const bobRoom = await Video.connect(bobToken, { ...connectOptions, tracks: [bobLocalTrack] });
+    console.log('Bob joined the room with video track');
 
-    roomSid.innerHTML = aliceRoom.sid;
 
-    // const aliceTrackRendered = renderLocalTrack(aliceLocalTrack);
-    // const bobTrackRendered = renderLocalTrack(bobLocalTrack);
+    await waitForSometime(2000);
+
+
     let alicePub = [...aliceRoom.localParticipant.tracks.values()][0] || null;
     let bobPub = [...bobRoom.localParticipant.tracks.values()][0] || null;
 
-    let tryButton = createButton('try repro', mainDiv, async () => {
-      tryButton.disable();
-      if (!alicePub) {
-        const alicePublishes = aliceRoom.localParticipant.publishTrack(aliceLocalTrack);
-        const bobPublishes = bobRoom.localParticipant.publishTrack(bobLocalTrack);
-        alicePub = await alicePublishes;
-        bobPub = await bobPublishes;
-        console.warn('makarand: publish promise done');
-      } else {
-        alicePub.unpublish();
-        bobPub.unpublish();
-        alicePub = null;
-        bobPub = null;
-        await waitForSometime(2000);
-        console.warn('makarand: un-publish done');
-        aliceRoom.disconnect();
-        bobRoom.disconnect();
-      }
-      // tryButton.enable();
-    });
+    alicePub.unpublish();
+    bobPub.unpublish();
+    await waitForSometime(2000);
+    console.warn('makarand: un-publish done');
+    aliceRoom.disconnect();
+    bobRoom.disconnect();
   });
 
   /**
@@ -127,8 +105,8 @@ export function demo(Video, containerDiv) {
    * @returns {Promise<{identity: string, token: string}>}
    */
   async function getRoomCredentials(tokenUrl) {
-    const topology = topologySelect.getValue();
-    const environment = envSelect.getValue();
+    const topology = 'group-small';
+    const environment = 'prod';
     const roomName = roomNameInput.value;
     let url = new URL(tokenUrl);
     const tokenOptions = { environment, topology, roomName };
@@ -136,7 +114,4 @@ export function demo(Video, containerDiv) {
     const response = await fetch(url); // /?tokenUrl=http://localhost:3000/token
     return response.json();
   }
-
-
-  window.tracks = [];
 }
