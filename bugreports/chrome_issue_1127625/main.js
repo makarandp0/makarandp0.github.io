@@ -7,21 +7,18 @@ const steps = "This sample helps demonstrate the chrome 86+ issue\r\n  \
   Failed to execute 'setLocalDescription' on 'RTCPeerConnection': Failed to set local offer sdp: Unknown transceiver\r\n \
   Step  1: Alice Add Track\r\n \
   Step  2: Alice Create Offer\r\n \
-  Step  3: Alice SetLocalDescription\r\n \
-  Step  4: Bob SetRemoteDescription\r\n \
-  Step  5: Bob Create Answer\r\n \
-  Step  6: Bob SetLocalDescription\r\n \
-  Step  7: Alice SetRemoteDescription\r\n \
-  Step  8: Alice create Offer\r\n \
-  Step  9: Update Alice's offer video m-line - change port to 0\r\n \
-  Step 10: Alice SetLocalDescription\r\n \
-  Step 11: Bob SetRemoteDescription\r\n \
-  Step 12: Bob CreateAnswer\r\n \
-  Step 13: Bob SetLocalDescription\r\n \
-  Step 14: Alice SetRemoteDescription\r\n \
-  Step 15: Bob CreateOffer\r\n \
-  Step 16: Bob SetLocalDescription\r\n \
+  Step  3: Update Alice's offer video m-line - change port to 0\r\n \
+  Step  4: Alice SetLocalDescription\r\n \
+  Step  5: Bob SetRemoteDescription\r\n \
+  Step  6: Bob CreateAnswer\r\n \
+  Step  7: Bob SetLocalDescription\r\n \
+  Step  8: Alice SetRemoteDescription\r\n \
+  Step  9: Bob CreateOffer\r\n \
+  Step 10: Bob SetLocalDescription\r\n \
+  * Notice that step 10 fails on Chrome 86+\r\n \
+  * Notice that same steps do not fail on Chrome 85\r\n \
 ";
+
 console.log(steps);
 
 import createButton from '../../jsutilmodules/button.js';
