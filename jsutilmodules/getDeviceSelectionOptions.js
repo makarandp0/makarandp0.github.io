@@ -40,10 +40,10 @@ export function ensureMediaPermissions() {
 export function getDeviceSelectionOptions() {
   // before calling enumerateDevices, get media permissions (.getUserMedia)
   // w/o media permissions, browsers do not return device Ids and/or labels.
-  return ensureMediaPermissions().then(function () {
-    return navigator.mediaDevices.enumerateDevices().then(function (deviceInfos) {
+  return ensureMediaPermissions().then(function() {
+    return navigator.mediaDevices.enumerateDevices().then(function(deviceInfos) {
       var kinds = ['audioinput', 'audiooutput', 'videoinput'];
-      return kinds.reduce(function (deviceSelectionOptions, kind) {
+      return kinds.reduce(function(deviceSelectionOptions, kind) {
         deviceSelectionOptions[kind] = getDevicesOfKind(deviceInfos, kind);
         return deviceSelectionOptions;
       }, {});
