@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 export default function generateAudioTrack() {
   // NOTE(mpatwardhan): We have to delay require-ing AudioContextFactory, because
   // it exports a default instance whose constructor calls Object.assign.

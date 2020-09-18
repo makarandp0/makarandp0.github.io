@@ -4,7 +4,9 @@
 /* eslint-disable quotes */
 'use strict';
 console.log('loaded twilio/es6/chrome87issue.js');
-import { createButton, createDiv, createElement } from './controls';
+import createButton from '../../jsutilmodules/button.js';
+import { createDiv } from '../../jsutilmodules/createDiv.js';
+import { createElement } from '../../jsutilmodules/createElement.js';
 import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
 
 let number = 0;

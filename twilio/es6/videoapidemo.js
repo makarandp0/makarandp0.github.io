@@ -4,12 +4,16 @@
 /* eslint-disable quotes */
 'use strict';
 
-import { createButton, createDiv, createElement, createSelection } from './controls.js';
+import { createLog, log } from '../../jsutilmodules/log.js';
 import { renderTrack, trackStatUpdater, updateTrackStats } from './renderTrack.js';
+import createButton from '../../jsutilmodules/button.js';
+import { createDiv } from '../../jsutilmodules/createDiv.js';
+import { createElement } from '../../jsutilmodules/createElement.js';
 import { createLabeledCheckbox } from "../../jsutilmodules/createLabeledCheckbox.js";
+import { createSelection } from "../../jsutilmodules/createSelection.js";
 import generateAudioTrack from '../../jsutilmodules/syntheticaudio.js';
 import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
-import { getDeviceSelectionOptions } from '../../jsutilmodules/getDeviceSelectionOptions.js';
+
 
 let number = 0;
 export function getNextNumber() {
@@ -18,28 +22,6 @@ export function getNextNumber() {
 
 function getChildDiv(container, divClass) {
   return container.querySelector('.' + divClass) || createDiv(container, divClass);
-}
-
-let logClearBtn = null;
-let realLogDiv = null;
-let logDiv = null;
-function createLog(containerDiv) {
-  logDiv = createDiv(containerDiv, 'outerLog', 'log');
-}
-
-export function log(...args) {
-  if (!logClearBtn) {
-    logClearBtn = createButton('clear log', logDiv, () => {
-      realLogDiv.innerHTML = '';
-    });
-    realLogDiv = createDiv(logDiv, 'log');
-  }
-
-  console.log(args);
-  const message = [...args].reduce((acc, arg) => acc + ', ' + arg, '');
-  // message = (new Date()).toISOString() + ':' + message;
-  realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message + '</p>';
-  realLogDiv.scrollTop = realLogDiv.scrollHeight;
 }
 
 export function demo(Video, containerDiv) {
@@ -60,7 +42,7 @@ export function demo(Video, containerDiv) {
     container: roomControlsDiv,
     options: ["group-small", "peer-to-peer", "group"],
     title: "topology",
-    onChange: () => console.log('topology change:', topologySelect.getValue())
+    onChange: () => log('topology change:', topologySelect.getValue())
   });
 
   const envSelect = createSelection({
@@ -68,7 +50,7 @@ export function demo(Video, containerDiv) {
     container: roomControlsDiv,
     options: ["dev", "stage", "prod"],
     title: "env",
-    onChange: () => console.log('env change:', envSelect.getValue())
+    onChange: () => log('env change:', envSelect.getValue())
   });
 
   const roomSid = createElement(roomControlsDiv, { type: 'h3', id: 'roomSid' });
@@ -138,6 +120,7 @@ export function demo(Video, containerDiv) {
     return defaultValue;
   }
 
+
   // process parameters.
   var urlParams = new URLSearchParams(window.location.search);
   roomNameInput.value = urlParams.get('room');
@@ -172,12 +155,39 @@ export function demo(Video, containerDiv) {
     window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
   }
 
-  createButton('testPreflight', roomControlsDiv, async () => {
+
+  let preflightTest =  null;
+  createButton('preparePreflight', roomControlsDiv, async () => {
     const aliceToken = (await getRoomCredentials(tokenUrl)).token;
     const bobToken = (await getRoomCredentials(tokenUrl)).token;
-    const preflightTest = Video.testPreflight(aliceToken, bobToken);
-    preflightTest.on('completed', report => {
-      console.log(report);
+    createButton('testPreflight', roomControlsDiv, async () => {
+      console.log('starting preflight');
+      preflightTest = Video.testPreflight(aliceToken, bobToken, { duration: 10000 });
+      const deferred = {};
+      deferred.promise = new Promise((resolve, reject) => {
+        deferred.resolve = resolve;
+        deferred.reject = reject;
+      });
+
+      preflightTest.on('tracks', tracks => {
+        tracks.forEach(track => renderLocalTrack(track));
+      });
+
+      preflightTest.on('progress', progress => {
+        console.log('preflight progress:', progress);
+      });
+
+      preflightTest.on('error', error => {
+        console.error('preflight error:', error);
+        deferred.reject(error);
+      });
+
+      preflightTest.on('completed', report => {
+        console.log('preflight completed:', report);
+        deferred.resolve(report);
+      });
+
+      await deferred.promise;
     });
   });
 
@@ -198,34 +208,6 @@ export function demo(Video, containerDiv) {
     const thisTrackName = 'camera-' + getNextNumber();
     const localTrack = await Video.createLocalVideoTrack({ logLevel: 'warn', name: thisTrackName });
     await renderLocalTrack(localTrack);
-  });
-
-  let deviceNumber = 0;
-  let newTrack = null;
-  let devices = null;
-  createButton('Quick Video', localVideoTrackContainer, async () => {
-    console.log('checking');
-
-    if (!devices) {
-      devices = await getDeviceSelectionOptions();
-    }
-
-    deviceNumber++;
-    const deviceIndex = deviceNumber % devices.videoinput.length;
-    const deviceId =  devices.videoinput[deviceIndex].deviceId;
-
-    console.log('done checking');
-    console.log(devices);
-    const thisTrackName = 'Joe Doe';
-    if (!newTrack) {
-      console.log('creating video track');
-      const newTracks = await Video.createLocalTracks({ audio: true, video: { deviceId: { exact: deviceId }, name: thisTrackName } });
-      newTrack = newTracks.find(t => t.kind === 'video');
-      await renderLocalTrack(newTrack);
-    } else {
-      console.log('calling restart');
-      await newTrack.restart({ deviceId: { exact: deviceId } });
-    }
   });
 
   const btnSyntheticVideo = createButton('Synthetic Video', localVideoTrackContainer, async () => {
@@ -263,10 +245,8 @@ export function demo(Video, containerDiv) {
   function renderTrackPublication(trackPublication, container) {
     const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
     const publicationContainer = createDiv(container, 'publication', trackContainerId);
-    const trackKind = createElement(publicationContainer, { type: 'h3', classNames: ['trackName'] });
     const trackSid = createElement(publicationContainer, { type: 'h6', classNames: ['participantSid'] });
-    trackKind.innerHTML = trackPublication.kind + ': published';
-    trackSid.innerHTML = trackPublication.trackSid;
+    trackSid.innerHTML = `${trackPublication.kind}:${trackPublication.trackSid}`;
 
     if (trackPublication.isSubscribed) {
       renderTrack({
@@ -507,6 +487,10 @@ export function demo(Video, containerDiv) {
 
   // Successfully connected!
   function roomJoined(room) {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('room', roomNameInput.value);
+    window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
+
     roomChangeMonitor.emitRoomChange(room);
     updateControls(true);
 

@@ -12,15 +12,16 @@ export function createLog(logDiv) {
     logClearBtn = createButton('clear log', logDiv, () => {
       realLogDiv.innerHTML = '';
     });
+
     realLogDiv = document.createElement('div');
     logDiv.appendChild(realLogDiv);
   }
 }
 
-export function log(message) {
+export function log(...args) {
   createLog();
-  message = (new Date()).toISOString() + ':' + message;
-  console.log(message);
-  realLogDiv.innerHTML += '<p>&gt;&nbsp;' + message  + '</p>';
+  const message = args.map(arg => String(arg)).join(', ');
+  realLogDiv.innerHTML += '<p>' + message  + '</p>';
   realLogDiv.scrollTop = realLogDiv.scrollHeight;
+  console.log(...args);
 }

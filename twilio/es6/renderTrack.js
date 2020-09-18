@@ -1,5 +1,7 @@
-import { createButton, createDiv, createLabeledStat } from './controls.js';
-import { Waveform } from './waveform.js';
+import { Waveform } from '../../jsutilmodules/waveform.js';
+import createButton from '../../jsutilmodules/button.js';
+import { createDiv } from '../../jsutilmodules/createDiv.js';
+import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 import { createTrackStats } from './createTrackStats.js';
 
 export const trackStatUpdater = new Map();

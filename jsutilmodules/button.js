@@ -12,3 +12,4 @@ export default function createButton(text, container, onClick) {
     disable: () => { btn.disabled = true; }
   };
 }
+

@@ -1,4 +1,6 @@
-import { createDiv, createLabeledStat } from './controls.js';
+import { createDiv } from '../../jsutilmodules/createDiv.js';
+import createLabeledStat from '../../jsutilmodules/labeledstat.js';
+
 export function createTrackStats(track, container) {
   var statsContainer = createDiv(container, 'trackStats');
 
