@@ -6,7 +6,8 @@ import { renderTrack } from './renderTrack.js';
 // creates buttons to publish unpublish track in a given room.
 function createRoomPublishControls(container, room, track, shouldAutoPublish) {
   container = createDiv(container, 'localTrackControls');
-  const roomSid = createElement(container, { type: 'h8', id: 'roomSid' });
+  const roomSid = createElement(container, { type: 'h8', classNames: ['roomHeader'] });
+
   roomSid.innerHTML = room.localParticipant.identity;
 
   let unPublishBtn = null;

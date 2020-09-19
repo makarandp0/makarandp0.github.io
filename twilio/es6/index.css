@@ -51,6 +51,10 @@ div#main video {
   max-height: 80% !important;
 }
 
+div.room-container {
+  border: solid black 2px;
+}
+
 div.remote-participants {
   display: flex;
   justify-content: flex-start;
@@ -75,7 +79,7 @@ div.participantMediaDiv {
 div.localTrackContainer,
 div.audioContainer,
 div.videoContainer {
-  margin: 10px;
+  /* margin: 10px; */
   max-width: 300px;
 }
 
@@ -93,13 +97,13 @@ div.localTrackControls {
   border: solid 1px black;
 }
 
-
+.roomHeaderText,
 .trackName,
 .participantName,
 .participantSid {
   background-color: rgba(0, 0, 0, 0.4);
   color: white;
-  max-width: calc((100% - 16px) - 0.5em);
+  /* max-width: calc((100% - 16px) - 0.5em); */
   min-width: 100px;
   margin: 0.25em;
   border-radius: 4px;
@@ -127,6 +131,11 @@ div.localTrackControls {
 
 .labeledStat {
   margin: 2px;
+}
+
+
+div.roomHeaderDiv {
+  display: flex;
 }
 
 .enabled.enabled_false,

@@ -4,7 +4,6 @@ import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import { log } from '../../jsutilmodules/log.js';
 
-
 function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
   const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
   const publicationContainer = createDiv(container, 'publication', trackContainerId);
@@ -83,14 +82,15 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
 
 export function renderRoom({ room, container, shouldAutoAttach }) {
   container = createDiv(container, 'room-container');
+  const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
 
-  const roomSid = createElement(container, { type: 'h3', id: 'roomSid' });
+  const roomSid = createElement(roomHeaderDiv, { type: 'h3', classNames: ['roomHeaderText'] });
   roomSid.innerHTML = room.sid + ' : ' + room.localParticipant.identity;
 
 
   const isDisconnected = room.disconnected;
-  const btnLeave = createButton('Leave', container, () => room.disconnect());
-  const btnClose = createButton('Close', container, () => container.remove());
+  const btnLeave = createButton('Leave', roomHeaderDiv, () => room.disconnect());
+  const btnClose = createButton('Close', roomHeaderDiv, () => container.remove());
 
   // When we are about to transition away from this page, disconnect
   // from the room, if joined.
