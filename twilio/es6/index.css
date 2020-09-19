@@ -51,7 +51,7 @@ div#main video {
   max-height: 80% !important;
 }
 
-div#remote-participants {
+div.remote-participants {
   display: flex;
   justify-content: flex-start;
   flex-wrap: wrap;
@@ -69,8 +69,10 @@ div.participantDiv {
 
 div.participantMediaDiv {
   display: flex;
+  flex-wrap: wrap;
 }
 
+div.localTrackContainer,
 div.audioContainer,
 div.videoContainer {
   margin: 10px;
@@ -86,6 +88,11 @@ div.videoContainer {
   order: 2;
   border: solid 1px blue;
 }
+
+div.localTrackControls {
+  border: solid 1px black;
+}
+
 
 .trackName,
 .participantName,
@@ -188,7 +195,7 @@ div#log {
 
 div#room-controls {
   order: 3;
-  display: flex;
+  display: block;
 }
 
 div#room-controls input {

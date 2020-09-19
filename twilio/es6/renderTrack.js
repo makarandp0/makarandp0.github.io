@@ -4,7 +4,7 @@ import { createDiv } from '../../jsutilmodules/createDiv.js';
 import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 import { createTrackStats } from './createTrackStats.js';
 
-export const trackStatUpdater = new Map();
+const trackStatUpdater = new Map();
 
 export function updateTrackStats({ trackId, trackSid, bytesSent, bytesReceived, trackType }) {
   const isRemote = trackType === 'remoteVideoTrackStats' || trackType === 'remoteAudioTrackStats';
@@ -78,5 +78,15 @@ export function renderTrack({ track, container, shouldAutoAttach }) {
     attachDetachBtn.click();
   }
   updateStats('initial');
-  return { trackContainer };
+  return {
+    trackContainer,
+    track,
+    stopRendering: () => {
+      track.detach().forEach(element => element.remove());
+      trackStatUpdater.delete(track);
+      trackContainer.remove();
+    }
+  };
 }
+
+
