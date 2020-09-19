@@ -7,7 +7,14 @@ import { createSelection } from '../../jsutilmodules/createSelection.js';
 import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
 import { log } from '../../jsutilmodules/log.js';
 
-export function createRoomControls(container, Video, roomJoined, localTracks) {
+/**
+ *
+ * @param {*} container
+ * @param {*} Video
+ * @param {*} roomJoined - callback is called when a room is joined to.
+ * @param {*} localTracks - array of local tracks.
+ */
+export function createRoomControls({ container, Video, roomJoined, localTracks }) {
   const roomControlsDiv = createDiv(container, 'room-controls', 'room-controls');
 
   const twilioVideoVersion = createElement(roomControlsDiv, { type: 'h3', id: 'twilioVideoVersion' });
@@ -150,9 +157,8 @@ export function createRoomControls(container, Video, roomJoined, localTracks) {
     });
   });
 
-
   return {
-    autoAttach,
-    autoPublish
+    shouldAutoAttach: () => autoAttach.checked,
+    shouldAutoPublish: () => autoPublish.checked,
   };
 }

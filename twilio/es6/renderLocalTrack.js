@@ -1,7 +1,54 @@
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
+import { createElement } from '../../jsutilmodules/createElement.js';
 import { renderTrack } from './renderTrack.js';
-export function renderLocalTrack({ room, track, container, shouldAutoAttach, shouldAutoPublish, onClosed }) {
+
+// creates buttons to publish unpublish track in a given room.
+function createRoomPublishControls(container, room, track, shouldAutoPublish) {
+  container = createDiv(container, 'localTrackControls');
+  const roomSid = createElement(container, { type: 'h8', id: 'roomSid' });
+  roomSid.innerHTML = room.localParticipant.identity;
+
+  let unPublishBtn = null;
+  let publishBtn = null;
+  let trackPublication = [...room.localParticipant.tracks.values()].find(trackPub => trackPub.track === track);
+  const updateControls = () => {
+    publishBtn.show(!trackPublication);
+    unPublishBtn.show(!!trackPublication);
+  };
+
+  publishBtn = createButton('publish', container, async () => {
+    publishBtn.disable();
+    if (!trackPublication) {
+      // eslint-disable-next-line require-atomic-updates
+      trackPublication = await room.localParticipant.publishTrack(track);
+      updateControls();
+    }
+    publishBtn.enable();
+  });
+
+  unPublishBtn = createButton('unpublish', container, () => {
+    if (trackPublication) {
+      trackPublication.unpublish();
+      trackPublication = null;
+      updateControls();
+    }
+  });
+  updateControls();
+
+  if (shouldAutoPublish) {
+    publishBtn.click();
+  }
+
+  return {
+    unPublishBtn,
+    stopRendering: () => {
+      container.remove();
+    }
+  };
+}
+
+export function renderLocalTrack({ rooms, track, container, shouldAutoAttach, shouldAutoPublish, onClosed }) {
   const localTrackContainer = createDiv(container, 'localTrackContainer');
   const { stopRendering } = renderTrack({ track, container: localTrackContainer, shouldAutoAttach });
 
@@ -13,44 +60,32 @@ export function renderLocalTrack({ room, track, container, shouldAutoAttach, sho
     track.mediaStreamTrack.stop();
   });
 
-  let trackPublication = null;
-  let unPublishBtn = null;
-  const publishBtn = createButton('publish', localTrackControls, async () => {
-    publishBtn.disable();
-    if (!trackPublication) {
-      // eslint-disable-next-line require-atomic-updates
-      trackPublication = await room.localParticipant.publishTrack(track);
-      publishBtn.show(!trackPublication);
-      unPublishBtn.show(!!trackPublication);
+  const roomPublishControls = new Map();
+  const roomAdded = room => {
+    if (!roomPublishControls.get(room)) {
+      roomPublishControls.set(room, createRoomPublishControls(localTrackContainer, room, track, shouldAutoPublish));
     }
-    publishBtn.enable();
-  });
-
-  unPublishBtn = createButton('unpublish', localTrackControls, () => {
-    if (trackPublication) {
-      trackPublication.unpublish();
-      trackPublication = null;
-      publishBtn.show(!trackPublication);
-      unPublishBtn.show(!!trackPublication);
-    }
-  });
-
-  const updateRoom = newRoom => {
-    if (newRoom) {
-      trackPublication = [...newRoom.localParticipant.tracks.values()].find(trackPub => trackPub.track === track);
-    }
-    publishBtn.show(newRoom && !trackPublication);
-    unPublishBtn.show(newRoom && !!trackPublication);
-    room = newRoom;
   };
 
-  // if autoPublish and room exits, publish the track
-  if (room && shouldAutoPublish) {
-    publishBtn.click();
-  }
+  const roomRemoved = room => {
+    const roomPublishControl = roomPublishControls.get(room);
+    if (roomPublishControl) {
+      roomPublishControl.stopRendering();
+      roomPublishControls.delete(room);
+    }
+  };
+
+  rooms.forEach(room => {
+    roomAdded(room);
+  });
 
   const closeBtn = createButton('close', localTrackControls, () => {
-    unPublishBtn.click();
+    [...roomPublishControls.keys()].forEach(room => {
+      const roomPublishControl = roomPublishControls.get(room);
+      roomPublishControl.unPublishBtn.click();
+      roomPublishControl.stopRendering();
+      roomPublishControls.delete(room);
+    });
     track.stop();
     localTrackContainer.remove();
     stopRendering();
@@ -59,8 +94,7 @@ export function renderLocalTrack({ room, track, container, shouldAutoAttach, sho
 
   return {
     closeBtn,
-    unPublishBtn,
-    publishBtn,
-    updateRoom,
+    roomAdded,
+    roomRemoved
   };
 }

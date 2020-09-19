@@ -18,59 +18,43 @@ export function demo(Video, containerDiv) {
   log("IsSupported: ", Video.isSupported);
   log("UserAgent: ", navigator.userAgent);
 
-  var activeRoom;
-  const roomChangeCallbacks = [];
-  class RoomChanged {
-    register(callback) {
-      roomChangeCallbacks.push(callback);
-      callback(activeRoom);
-    }
-
-    unregister(callback) {
-      var index = roomChangeCallbacks.indexOf(callback);
-      if (index > -1) {
-        roomChangeCallbacks.splice(index, 1);
-      }
-    }
-
-    emitRoomChange(room) {
-      window.room = activeRoom = room;
-      roomChangeCallbacks.forEach(callback => callback(room));
-    }
-
-    get room() {
-      return activeRoom;
-    }
-  }
-  const roomChangeMonitor = new RoomChanged();
-
-  const localControls = createDiv(mainDiv, 'localControls', 'localControls');
+  const container = createDiv(mainDiv, 'localControls', 'localControls');
 
   const localTracks = [];
-  var { autoAttach, autoPublish } = createRoomControls(localControls, Video, roomJoined, localTracks);
-  createLocalTracksControls({
-    container: localControls,
+  const rooms = [];
+  window.rooms = rooms;
+  const  { shouldAutoAttach, shouldAutoPublish } = createRoomControls({
+    container,
     Video,
     localTracks,
-    roomChangeMonitor,
-    shouldAutoAttach: () => autoAttach.checked,
-    shouldAutoPublish: () => autoPublish.checked,
+    roomJoined,
   });
 
-  (function main() {
-    roomChangeMonitor.emitRoomChange(null);
-  }());
+  const { roomAdded, roomRemoved } = createLocalTracksControls({
+    container,
+    Video,
+    localTracks,
+    rooms,
+    shouldAutoAttach,
+    shouldAutoPublish,
+  });
 
   // Successfully connected!
   function roomJoined(room) {
-    roomChangeMonitor.emitRoomChange(room);
-
-    log("Joined as '" + activeRoom.localParticipant.identity + "'");
-    renderRoom(room, mainDiv, () => autoAttach.checked);
+    rooms.push(room);
+    roomAdded(room);
+    log(`Joined ${room.sid} as "${room.localParticipant.identity}"`);
+    renderRoom({ room, container: mainDiv, shouldAutoAttach });
     room.on('disconnected', (_, err) => {
-      log('Left:', err);
-      roomChangeMonitor.emitRoomChange(null);
-      activeRoom = null;
+      log(`Left ${room.sid} as "${room.localParticipant.identity}"`);
+      if (err) {
+        log('Error:', err);
+      }
+      const index = rooms.indexOf(room);
+      if (index > -1) {
+        rooms.splice(index, 1);
+      }
+      roomRemoved(room);
     });
   }
 }

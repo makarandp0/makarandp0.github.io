@@ -5,7 +5,7 @@ import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
 import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
 import { renderLocalTrack } from './renderLocalTrack.js';
 
-export function createLocalTracksControls({ container, Video, localTracks, roomChangeMonitor, shouldAutoAttach, shouldAutoPublish }) {
+export function createLocalTracksControls({ container, rooms, Video, localTracks, shouldAutoAttach, shouldAutoPublish }) {
   let number = 0;
   const autoAudio = getBooleanUrlParam('autoAudio', false);
   const autoVideo = getBooleanUrlParam('autoVideo', false);
@@ -13,23 +13,23 @@ export function createLocalTracksControls({ container, Video, localTracks, roomC
   const localAudioTrackContainer = createDiv(container, 'audioTrackContainer', 'audioTrack');
   const localVideoTrackContainer = createDiv(container, 'videoTrackContainer', 'videoTrack');
 
+  const renderedTracks = new Map();
   function renderLocalTrack2(track) {
     localTracks.push(track);
-    const { updateRoom } = renderLocalTrack({
+    renderedTracks.set(track, renderLocalTrack({
       container: track.kind === 'video' ? localVideoTrackContainer : localAudioTrackContainer,
-      room: roomChangeMonitor.room,
+      rooms,
       track,
       shouldAutoAttach: shouldAutoAttach(),
       shouldAutoPublish: shouldAutoPublish(),
       onClosed: () => {
-        roomChangeMonitor.unregister(updateRoom);
         const index = localTracks.indexOf(track);
         if (index > -1) {
           localTracks.splice(index, 1);
         }
+        renderedTracks.delete(track);
       }
-    });
-    roomChangeMonitor.register(updateRoom);
+    }));
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -69,4 +69,13 @@ export function createLocalTracksControls({ container, Video, localTracks, roomC
   if (autoVideo) {
     btnPreviewVideo.click();
   }
+
+  return {
+    roomAdded: room  => {
+      [...renderedTracks.values()].forEach(renderedTrack => renderedTrack.roomAdded(room));
+    },
+    roomRemoved: room => {
+      [...renderedTracks.values()].forEach(renderedTrack => renderedTrack.roomRemoved(room));
+    },
+  };
 }

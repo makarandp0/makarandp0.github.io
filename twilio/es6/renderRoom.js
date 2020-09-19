@@ -81,7 +81,7 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
   };
 }
 
-export function renderRoom(room, container, shouldAutoAttach) {
+export function renderRoom({ room, container, shouldAutoAttach }) {
   container = createDiv(container, 'room-container');
 
   const roomSid = createElement(container, { type: 'h3', id: 'roomSid' });
@@ -132,8 +132,7 @@ export function renderRoom(room, container, shouldAutoAttach) {
 
   // Once the LocalParticipant leaves the room, detach the Tracks
   // of all Participants, including that of the LocalParticipant.
-  room.on('disconnected', (_, err) => {
-    log('Left:', err);
+  room.on('disconnected', () => {
     btnClose.show(true);
     btnLeave.show(false);
     clearInterval(statUpdater);
