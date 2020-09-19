@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import Video from 'twilio-video';
 import { demo } from '../../es6/chrome87issue.js';
 
