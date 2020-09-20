@@ -50,10 +50,13 @@ app supports various url parameters
 | ------------- |:--------------------------------------|:--------|
 | room          | if specified used as the name of the room to join |  |
 | identity      | if specified used as identity to join the room  | auto generated   |
-| autoJoin      | if true app joins specified room after page load  | false   |
-| autoPublish   | if not false app publishes tracks as they are created  | true   |
-| autoVideo     | if specified app creates local video track at startup  |  false  |
-| autoAudio     | if specified app creates local audio track at startup  |  false  |
+| autoJoin      | if true app joins specified room after page load  | `false`   |
+| autoPublish   | if not false app publishes tracks as they are created  | `true`   |
+| autoVideo     | if specified app creates local video track at startup  |  `false`  |
+| autoAudio     | if specified app creates local audio track at startup  |  `false`  |
+| topology      | type of room to use  |  `group-small`  |
+| env           | backend environment to use  |  `prod`  |
+| token         | token or token server url to use to join the room |  `/token`  |
 
 
 when navigated to
@@ -61,3 +64,7 @@ http://localhost:8080/?room=foo&autoJoin&autoAudio&autoVideo&identity=mak
 
 The page will join room `foo` with `mak` as local identity and publish a video and audio track to the room.
 
+
+# Online demo
+You can also see this app hosted by github pages @ https://makarandp0.github.io/twilio/es6/
+To join the room you would need to specify `token` parameter.
