@@ -37,9 +37,16 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   });
 
   const localIdentity = createElement(roomControlsDiv, { type: 'input', id: 'localIdentity' });
-  const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
   localIdentity.placeholder = 'Enter identity or random name will be generated';
+
+  const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
   roomNameInput.placeholder = 'Enter room name';
+
+  const connectOptionsLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['connectOptionsLabel'] });
+  connectOptionsLabel.innerHTML = 'Additional Connect Options: ';
+  const extraConnectOptions = createElement(roomControlsDiv, { type: 'textarea', classNames: ['connectOptions'] });
+  extraConnectOptions.placeholder = 'connectOptions as json here';
+
 
   const controlOptionsDiv = createDiv(roomControlsDiv, 'control-options', 'control-options');
 
@@ -52,6 +59,9 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   var urlParams = new URLSearchParams(window.location.search);
   roomNameInput.value = urlParams.get('room');
   localIdentity.value = urlParams.get('identity');
+
+  // note to specify connectOptions on url you must encodeURIComponent(JSON.stringify({logLevel: 'debug'}))
+  extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'debug' });
   autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
   topologySelect.setValue(urlParams.get('topology') || 'group-small');
   envSelect.setValue(urlParams.get('env') || 'prod');
@@ -99,17 +109,28 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     if (!roomName) {
       // eslint-disable-next-line no-alert
       alert('Please enter a room name.');
+      return;
+    }
+
+    let additionalConnectOptions = {};
+    if (extraConnectOptions.value !== '') {
+      try {
+        additionalConnectOptions = JSON.parse(extraConnectOptions.value);
+      } catch (e) {
+        console.warn('failed to parse additional connect options.', e);
+        return;
+      }
     }
 
     log(`Joining room ${roomName} ${autoPublish.checked ? 'with' : 'without'} ${localTracks.length} localTracks`);
-    var connectOptions = {
+    var connectOptions = Object.assign({
       tracks: autoPublish.checked ? localTracks : [],
       name: roomName,
-      logLevel: 'warn',
       environment: envSelect.getValue()
-    };
+    }, additionalConnectOptions);
     // Join the Room with the token from the server and the
     // LocalParticipant's Tracks.
+    log(`Joining room ${roomName} with ${JSON.stringify(connectOptions, null, 2)}`);
     Video.connect(token, connectOptions)
       .then(roomJoined)
       .catch(error => {
@@ -126,36 +147,36 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     btnJoin.click();
   }
 
-  let preflightTest = null;
-  createButton('preparePreflight', roomControlsDiv, async () => {
-    const aliceToken = (await getRoomCredentials()).token;
-    const bobToken = (await getRoomCredentials()).token;
-    createButton('testPreflight', roomControlsDiv, async () => {
-      console.log('starting preflight');
-      preflightTest = Video.testPreflight(aliceToken, bobToken, { duration: 10000 });
-      const deferred = {};
-      deferred.promise = new Promise((resolve, reject) => {
-        deferred.resolve = resolve;
-        deferred.reject = reject;
-      });
+  // let preflightTest = null;
+  // createButton('preparePreflight', roomControlsDiv, async () => {
+  //   const aliceToken = (await getRoomCredentials()).token;
+  //   const bobToken = (await getRoomCredentials()).token;
+  //   createButton('testPreflight', roomControlsDiv, async () => {
+  //     console.log('starting preflight');
+  //     preflightTest = Video.testPreflight(aliceToken, bobToken, { duration: 10000 });
+  //     const deferred = {};
+  //     deferred.promise = new Promise((resolve, reject) => {
+  //       deferred.resolve = resolve;
+  //       deferred.reject = reject;
+  //     });
 
-      preflightTest.on('progress', progress => {
-        console.log('preflight progress:', progress);
-      });
+  //     preflightTest.on('progress', progress => {
+  //       console.log('preflight progress:', progress);
+  //     });
 
-      preflightTest.on('error', error => {
-        console.error('preflight error:', error);
-        deferred.reject(error);
-      });
+  //     preflightTest.on('error', error => {
+  //       console.error('preflight error:', error);
+  //       deferred.reject(error);
+  //     });
 
-      preflightTest.on('completed', report => {
-        console.log('preflight completed:', report);
-        deferred.resolve(report);
-      });
+  //     preflightTest.on('completed', report => {
+  //       console.log('preflight completed:', report);
+  //       deferred.resolve(report);
+  //     });
 
-      await deferred.promise;
-    });
-  });
+  //     await deferred.promise;
+  //   });
+  // });
 
   return {
     shouldAutoAttach: () => autoAttach.checked,

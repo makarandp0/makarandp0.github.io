@@ -56,6 +56,7 @@ app supports various url parameters
 | autoAudio     | if specified app creates local audio track at startup  |  `false`  |
 | topology      | type of room to use  |  `group-small`  |
 | env           | backend environment to use  |  `prod`  |
+| connectOptions| additional connect options to use  | `{"logLevel":"debug"}`   |
 | token         | token or token server url to use to join the room |  `/token`  |
 
 
