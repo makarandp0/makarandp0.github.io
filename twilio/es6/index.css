@@ -204,7 +204,9 @@ div#log {
 
 div#room-controls {
   order: 3;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
 }
 
 div#room-controls input {
