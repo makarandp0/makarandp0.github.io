@@ -1,15 +1,15 @@
 /* eslint-disable no-console */
 import { demo } from './videoapidemo.js';
-const defaultSDKVersion = '2.7.0';
+const defaultSDKVersion = '2.7.2';
 
 export function loadVideoAndDemo(Video, containerDiv) {
   const urlParams = new URLSearchParams(window.location.search);
   let sdkVersion = urlParams.get('sdkVersion');
   if (sdkVersion || !Video) {
     sdkVersion = sdkVersion || defaultSDKVersion;
-    const newScript = document.createElement("script");
+    const newScript = document.createElement('script');
     newScript.onerror = oError => {
-      throw new URIError("The script " + oError.target.src + " didn't load correctly.");
+      throw new URIError('The script ' + oError.target.src + ' didn\'t load correctly.');
     };
     newScript.onload = () => {
       console.log('makarand: Twilio.Video.version ', window.Twilio.Video.version);

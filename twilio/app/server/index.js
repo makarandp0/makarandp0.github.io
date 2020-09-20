@@ -57,29 +57,6 @@ async function createRoom({ environment = 'prod', topology, roomName }) {
     return video.rooms(roomName).fetch();
   });
   console.log('createRoom returned:', result);
-  // { sid: 'RMccff249dccc111639d9f735e13c104a6',
-  // status: 'in-progress',
-  // dateCreated: 2020-06-14T18:40:28.000Z,
-  // dateUpdated: 2020-06-14T18:40:28.000Z,
-  // accountSid: 'AC96ccc904753b3364f24211e8d9746a93',
-  // enableTurn: true,
-  // uniqueName: 'RMccff249dccc111639d9f735e13c104a6',
-  // statusCallback: null,
-  // statusCallbackMethod: 'POST',
-  // endTime: null,
-  // duration: null,
-  // type: 'group-small',
-  // maxParticipants: 4,
-  // recordParticipantsOnConnect: true,
-  // videoCodecs: [ 'H264', 'VP8' ],
-  // mediaRegion: 'gll',
-  // url:
-  //  'https://video.twilio.com/v1/Rooms/RMccff249dccc111639d9f735e13c104a6',
-  // links:
-  //  { recordings:
-  //     'https://video.twilio.com/v1/Rooms/RMccff249dccc111639d9f735e13c104a6/Recordings',
-  //    participants:
-  //     'https://video.twilio.com/v1/Rooms/RMccff249dccc111639d9f735e13c104a6/Participants' } }
   return result;
 }
 
@@ -92,28 +69,6 @@ async function completeRoom({ environment = 'prod', roomName }) {
 
   const result = await video.rooms(roomName).update({ status: 'completed' });
   console.log('completeRoom returned: ', result);
-  // status: 'completed',
-  // dateCreated: 2020-06-14T18:48:15.000Z,
-  // dateUpdated: 2020-06-14T18:48:15.000Z,
-  // accountSid: 'AC96ccc904753b3364f24211e8d9746a93',
-  // enableTurn: true,
-  // uniqueName: 'one',
-  // statusCallback: null,
-  // statusCallbackMethod: 'POST',
-  // endTime: 2020-06-14T18:48:26.000Z,
-  // duration: 11,
-  // type: 'group-small',
-  // maxParticipants: 4,
-  // recordParticipantsOnConnect: true,
-  // videoCodecs: [ 'VP8', 'H264' ],
-  // mediaRegion: 'gll',
-  // url:
-  //  'https://video.twilio.com/v1/Rooms/RM4baee2a709177cedc72aed016390ff9d',
-  // links:
-  //  { recordings:
-  //     'https://video.twilio.com/v1/Rooms/RM4baee2a709177cedc72aed016390ff9d/Recordings',
-  //    participants:
-  //     'https://video.twilio.com/v1/Rooms/RM4baee2a709177cedc72aed016390ff9d/Participants' } }
   return result;
 }
 
