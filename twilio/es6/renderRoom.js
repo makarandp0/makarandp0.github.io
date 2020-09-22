@@ -1,8 +1,9 @@
-import { renderTrack, updateTrackStats } from './renderTrack.js';
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import { log } from '../../jsutilmodules/log.js';
+import { renderTrack } from './renderTrack.js';
+import { updateTrackStats } from './renderLocalTrack.js';
 
 function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
   const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
@@ -27,13 +28,18 @@ function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
       shouldAutoAttach
     });
   });
+
   trackPublication.on('unsubscribed', () => {
     renderedTrack.stopRendering();
     renderedTrack = null;
   });
 
-
   return {
+    updateStats: (...args) => {
+      if (renderedTrack) {
+        renderedTrack.updateStats(...args);
+      }
+    },
     trackPublication,
     publicationContainer,
     stopRendering: () => {
@@ -48,7 +54,7 @@ function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
 
 export function renderParticipant(participant, container, shouldAutoAttach) {
   let participantContainer = createDiv(container, 'participantDiv', `participantContainer-${participant.identity}`);
-  const name = createElement(participantContainer, { type: 'h2', classNames: ['participantName'] });
+  const name = createElement(participantContainer, { type: 'h3', classNames: ['participantName'] });
   name.innerHTML = participant.identity;
   const participantMedia = createDiv(participantContainer, 'participantMediaDiv');
   const renderedPublications = new Map();
@@ -70,6 +76,13 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
   });
   return {
     container: participantContainer,
+    updateStats: ({ trackSid, bytesReceived }) => {
+      [...renderedPublications.keys()].forEach(thisTrackSid => {
+        if (trackSid === thisTrackSid) {
+          renderedPublications.get(thisTrackSid).updateStats('bytes', bytesReceived);
+        }
+      });
+    },
     stopRendering: () => {
       [...renderedPublications.keys()].forEach(trackSid => {
         renderedPublications.get(trackSid).stopRendering();
@@ -84,20 +97,21 @@ export function renderRoom({ room, container, shouldAutoAttach }) {
   container = createDiv(container, 'room-container');
   const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
 
-  const roomSid = createElement(roomHeaderDiv, { type: 'h3', classNames: ['roomHeaderText'] });
-  roomSid.innerHTML = room.sid + ' : ' + room.localParticipant.identity;
+  const roomSid = createElement(roomHeaderDiv, { type: 'h2', classNames: ['roomHeaderText'] });
+  roomSid.innerHTML = `Room: ${room.sid} LocalParticipant: ${room.localParticipant.identity}`;
 
 
   const isDisconnected = room.disconnected;
-  const btnLeave = createButton('Leave', roomHeaderDiv, () => room.disconnect());
-  const btnClose = createButton('Close', roomHeaderDiv, () => container.remove());
+  const btnLeave = createButton('Leave', roomHeaderDiv, () => {
+    room.disconnect();
+    container.remove();
+  });
 
   // When we are about to transition away from this page, disconnect
   // from the room, if joined.
   window.addEventListener('beforeunload', () => room.disconnect());
 
   btnLeave.show(!isDisconnected);
-  btnClose.show(isDisconnected);
 
   const renderedParticipants = new Map();
   const remoteParticipantsContainer = createDiv(container, 'remote-participants', 'remote-participants');
@@ -124,7 +138,13 @@ export function renderRoom({ room, container, shouldAutoAttach }) {
     statReports.forEach(statReport => {
       ['remoteVideoTrackStats', 'remoteAudioTrackStats', 'localAudioTrackStats', 'localVideoTrackStats'].forEach(
         trackType => {
-          statReport[trackType].forEach(trackStats => updateTrackStats({ ...trackStats, trackType }));
+          statReport[trackType].forEach(trackStats => {
+            const { trackId, trackSid, bytesSent, bytesReceived } = trackStats;
+            [...renderedParticipants.keys()].forEach(key => {
+              renderedParticipants.get(key).updateStats({ trackId, trackSid, bytesSent, bytesReceived, trackType });
+            });
+            updateTrackStats({ room, trackId, trackSid, bytesSent, bytesReceived, trackType });
+          });
         }
       );
     });
@@ -133,8 +153,6 @@ export function renderRoom({ room, container, shouldAutoAttach }) {
   // Once the LocalParticipant leaves the room, detach the Tracks
   // of all Participants, including that of the LocalParticipant.
   room.on('disconnected', () => {
-    btnClose.show(true);
-    btnLeave.show(false);
     clearInterval(statUpdater);
     [...renderedParticipants.keys()].forEach(key => {
       renderedParticipants.get(key).stopRendering();

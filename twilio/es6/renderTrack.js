@@ -4,16 +4,6 @@ import { createDiv } from '../../jsutilmodules/createDiv.js';
 import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 import { createTrackStats } from './createTrackStats.js';
 
-const trackStatUpdater = new Map();
-
-export function updateTrackStats({ trackId, trackSid, bytesSent, bytesReceived, trackType }) {
-  const isRemote = trackType === 'remoteVideoTrackStats' || trackType === 'remoteAudioTrackStats';
-  trackStatUpdater.forEach((updateStats, track) => {
-    if (track.sid === trackSid || track.id === trackId) {
-      updateStats('bytes', isRemote ? bytesReceived : bytesSent);
-    }
-  });
-}
 
 /**
  * Attach the AudioTrack to the HTMLAudioElement and start the Waveform.
@@ -32,7 +22,6 @@ export function renderTrack({ track, container, shouldAutoAttach }) {
   const trackContainerId = track.sid || track.id;
   const trackContainer = createDiv(container, track.kind + 'Container', trackContainerId);
   const { updateStats } = createTrackStats(track, trackContainer);
-  trackStatUpdater.set(track, updateStats);
 
   const controlContainer = createDiv(trackContainer, 'trackControls');
 
@@ -81,9 +70,9 @@ export function renderTrack({ track, container, shouldAutoAttach }) {
   return {
     trackContainer,
     track,
+    updateStats,
     stopRendering: () => {
       track.detach().forEach(element => element.remove());
-      trackStatUpdater.delete(track);
       trackContainer.remove();
     }
   };

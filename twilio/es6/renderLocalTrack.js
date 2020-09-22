@@ -1,7 +1,21 @@
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
+import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 import { renderTrack } from './renderTrack.js';
+
+const publishControls = new Map(); //  Map(track => Map( room => publishControl ))
+export function updateTrackStats({ room, trackId, trackSid, bytesSent, bytesReceived, trackType }) {
+  const trackPublishControls = publishControls.get(trackId);
+  if (trackPublishControls) {
+    const publishControl = trackPublishControls.get(room);
+    if (publishControl) {
+      if (['localAudioTrackStats', 'localVideoTrackStats'].includes(trackType)) {
+        publishControl.updateTrackStats({ room, trackId, trackSid, bytesSent, bytesReceived, trackType });
+      }
+    }
+  }
+}
 
 // creates buttons to publish unpublish track in a given room.
 function createRoomPublishControls(container, room, track, shouldAutoPublish) {
@@ -12,6 +26,7 @@ function createRoomPublishControls(container, room, track, shouldAutoPublish) {
 
   let unPublishBtn = null;
   let publishBtn = null;
+  let statBytes = null;
   let trackPublication = [...room.localParticipant.tracks.values()].find(trackPub => trackPub.track === track);
   const updateControls = () => {
     publishBtn.show(!trackPublication);
@@ -28,6 +43,9 @@ function createRoomPublishControls(container, room, track, shouldAutoPublish) {
     publishBtn.enable();
   });
 
+  statBytes = createLabeledStat(container, 'bytes sent', { className: 'bytes', useValueToStyle: true });
+  statBytes.setText('0');
+
   unPublishBtn = createButton('unpublish', container, () => {
     if (trackPublication) {
       trackPublication.unpublish();
@@ -43,6 +61,11 @@ function createRoomPublishControls(container, room, track, shouldAutoPublish) {
 
   return {
     unPublishBtn,
+    updateTrackStats: ({ trackSid, bytesSent }) => {
+      if (trackPublication && trackPublication.trackSid === trackSid) {
+        statBytes.setText(bytesSent);
+      }
+    },
     stopRendering: () => {
       container.remove();
     }
@@ -61,35 +84,40 @@ export function renderLocalTrack({ rooms, track, container, shouldAutoAttach, sh
     track.mediaStreamTrack.stop();
   });
 
-  const roomPublishControls = new Map();
+  const trackPublishControls = new Map(); // room => publishControl
+  publishControls.set(track.id, trackPublishControls);
+
+  // for existing rooms, publish track if shouldAutoPublish
+  rooms.forEach(room => {
+    trackPublishControls.set(room, createRoomPublishControls(localTrackContainer, room, track, shouldAutoPublish));
+  });
+
   const roomAdded = room => {
-    if (!roomPublishControls.get(room)) {
-      roomPublishControls.set(room, createRoomPublishControls(localTrackContainer, room, track, shouldAutoPublish));
+    if (!trackPublishControls.get(room)) {
+      // for any rooms that are joined after track - do not auto publish,
+      // as room starts of ith tracks depending on auto publish.
+      trackPublishControls.set(room, createRoomPublishControls(localTrackContainer, room, track, false));
     }
   };
 
   const roomRemoved = room => {
-    const roomPublishControl = roomPublishControls.get(room);
+    const roomPublishControl = trackPublishControls.get(room);
     if (roomPublishControl) {
       roomPublishControl.stopRendering();
-      roomPublishControls.delete(room);
+      trackPublishControls.delete(room);
     }
   };
 
-  rooms.forEach(room => {
-    roomAdded(room);
-  });
-
   const closeBtn = createButton('close', localTrackControls, () => {
-    [...roomPublishControls.keys()].forEach(room => {
-      const roomPublishControl = roomPublishControls.get(room);
+    [...trackPublishControls.keys()].forEach(room => {
+      const roomPublishControl = trackPublishControls.get(room);
       roomPublishControl.unPublishBtn.click();
       roomPublishControl.stopRendering();
-      roomPublishControls.delete(room);
+      trackPublishControls.delete(room);
     });
+    stopRendering();
     track.stop();
     localTrackContainer.remove();
-    stopRendering();
     onClosed();
   });
 

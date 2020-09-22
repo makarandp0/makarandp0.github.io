@@ -36,14 +36,18 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     onChange: () => log('env change:', envSelect.getValue())
   });
 
+  const identityLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['identityLabel'] });
+  identityLabel.innerHTML = 'Identity: ';
   const localIdentity = createElement(roomControlsDiv, { type: 'input', id: 'localIdentity' });
   localIdentity.placeholder = 'Enter identity or random name will be generated';
 
+  const roomNameLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['roomNameLabel'] });
+  roomNameLabel.innerHTML = 'Room: ';
   const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
   roomNameInput.placeholder = 'Enter room name';
 
   const connectOptionsLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['connectOptionsLabel'] });
-  connectOptionsLabel.innerHTML = 'Additional Connect Options: ';
+  connectOptionsLabel.innerHTML = 'ConnectOptions: ';
   const extraConnectOptions = createElement(roomControlsDiv, { type: 'textarea', classNames: ['connectOptions'] });
   extraConnectOptions.placeholder = 'connectOptions as json here';
 
