@@ -3,11 +3,6 @@ button {
   margin: 5px;
 }
 
-div#controls {
-  display: flex;
-  justify-content: center;
-  flex-direction: row;
-}
 
 div#main {
   box-sizing: border-box;
@@ -27,18 +22,19 @@ h1.badError {
   text-align: center;
 }
 
-div#main div#localControls {
-  margin: 10px;
+div#main div.localControls {
+  /* margin: 10px; */
   display: flex;
   width: 100%;
   background-color: #fff;
 }
 
-div#main div#localControls div#audioTrack,
-div#main div#localControls div#videoTrack,
-div#main div#localControls div#room-controls {
-  margin: 10px;
-  width: 30%;
+div#main div.localControls div#audioTrack,
+div#main div.localControls div#videoTrack,
+div#main div.localControls div#room-controls {
+  /* margin: 10px; */
+  /* width: 30%; */
+  padding: 5px;
   background-color: #fff;
 }
 
@@ -76,25 +72,43 @@ div.participantMediaDiv {
   flex-wrap: wrap;
 }
 
-div.localTrackContainer,
-div.audioContainer,
-div.videoContainer {
-  /* margin: 10px; */
+div.localTracks {
+  width: inherit;
+}
+
+div.localTracks > div.trackButtons {
+  text-align: left;
+}
+
+div.localTracks > div.trackRenders {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+
+div.localTrackContainer, div.trackContainer {
+  padding: 5px;
   max-width: 300px;
 }
 
-div.audioContainer {
-  order: 1;
-  border: solid 1px red;
+div.trackContainer {
+  border: solid 1px black;
 }
 
-div.videoContainer {
-  order: 2;
-  border: solid 1px blue;
+div.participantMediaDiv {
+  padding: 5px;
+}
+
+div.publication {
+  padding: 5px;
 }
 
 div.localTrackControls {
-  border: solid 1px black;
+  /* since it attaches to track container */
+  /* does not need top border */
+  border-bottom: solid 1px black;
+  border-left: solid 1px black;
+  border-right: solid 1px black;
 }
 
 .roomHeaderText,
@@ -148,39 +162,36 @@ div.roomHeaderDiv {
   background: gray;
 }
 
+.trackKind.trackKind_audio {
+  background: lightcoral;
+}
+.trackKind.trackKind_video {
+  background: lightblue;
+}
+
+.roomstate.roomstate_connected {
+  background: lightgreen;
+}
+
+.roomstate.roomstate_disconnected {
+  background: red;
+}
+
+.roomstate.roomstate_reconnecting {
+  background: yellow;
+}
+
+
+
 canvas {
   background-color: #aaa;
 }
 
-div#controls div#room-controls,
-div#controls div#preview div#log {
-  /* width: 16em; */
-  margin: 0 1.5em;
-  text-align: center;
-}
 
 div#control-options {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-div#controls div#preview button#button-preview {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-div#controls div#preview button#button-preview img#button-preview-image {
-  padding-right: 1em;
-  color: white;
-}
-
-div#controls p.instructions {
-  text-align: left;
-  margin-bottom: 1em;
-  font-size: 1.25em;
-  color: #777776;
 }
 
 button#button-preview {
@@ -192,26 +203,21 @@ div#log {
 }
 
 div#room-controls {
-  order: 3;
+  /* order: 3; */
+  border: solid black 2px;
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
 }
 
 div#room-controls input {
-  width: 100%;
+  /* width: 100%; */
   padding: 0.5em;
   text-align: center;
 }
 
 div#room-controls label {
   margin-top: 10px;
-}
-
-div#controls div#room-controls > button#button-leave {
-  display: none;
-  text-align: center;
-  margin-top: 0;
 }
 
 div#room-controls > button {

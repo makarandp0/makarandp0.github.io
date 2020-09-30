@@ -4,6 +4,11 @@ import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 export function createTrackStats(track, container) {
   var statsContainer = createDiv(container, 'trackStats');
 
+  createLabeledStat(statsContainer, 'kind', {
+    className: 'trackKind',
+    useValueToStyle: true,
+  }).setText(track.kind);
+
   const readyState = createLabeledStat(statsContainer, 'readyState', {
     className: 'readyState',
     useValueToStyle: true,

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { randomName, randomRoomName } from './randomName.js';
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
@@ -39,7 +40,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   const identityLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['identityLabel'] });
   identityLabel.innerHTML = 'Identity: ';
   const localIdentity = createElement(roomControlsDiv, { type: 'input', id: 'localIdentity' });
-  localIdentity.placeholder = 'Enter identity or random name will be generated';
+  localIdentity.placeholder = 'Enter identity or random one will be generated';
 
   const roomNameLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['roomNameLabel'] });
   roomNameLabel.innerHTML = 'Room: ';
@@ -60,9 +61,9 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   const autoJoin = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Auto Join', id: 'autoJoin' });
 
   // process parameters.
-  var urlParams = new URLSearchParams(window.location.search);
-  roomNameInput.value = urlParams.get('room');
-  localIdentity.value = urlParams.get('identity');
+  const urlParams = new URLSearchParams(window.location.search);
+  roomNameInput.value = urlParams.get('room') || randomRoomName();
+  localIdentity.value = urlParams.get('identity') || randomName();
 
   // note to specify connectOptions on url you must encodeURIComponent(JSON.stringify({logLevel: 'debug'}))
   extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'debug' });
@@ -98,18 +99,15 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     const roomName = roomNameInput.value;
 
     let url = new URL(tokenUrl);
-    const tokenOptions = { environment, topology, roomName };
-    // if identity is specified use it.
-    if (localIdentity.value) {
-      tokenOptions.identity = localIdentity.value;
-    }
+    const identity = localIdentity.value || randomName();
+    const tokenOptions = { environment, topology, roomName, identity };
     url.search = new URLSearchParams(tokenOptions);
     const response = await fetch(url); // /?tokenUrl=http://localhost:3000/token
     return response.json();
   }
 
   function joinRoom(token) {
-    var roomName = roomNameInput.value;
+    const roomName = roomNameInput.value;
     if (!roomName) {
       // eslint-disable-next-line no-alert
       alert('Please enter a room name.');
@@ -127,7 +125,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     }
 
     log(`Joining room ${roomName} ${autoPublish.checked ? 'with' : 'without'} ${localTracks.length} localTracks`);
-    var connectOptions = Object.assign({
+    const connectOptions = Object.assign({
       tracks: autoPublish.checked ? localTracks : [],
       name: roomName,
       environment: envSelect.getValue()
@@ -151,37 +149,44 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     btnJoin.click();
   }
 
-  // let preflightTest = null;
-  // createButton('preparePreflight', roomControlsDiv, async () => {
-  //   const aliceToken = (await getRoomCredentials()).token;
-  //   const bobToken = (await getRoomCredentials()).token;
-  //   createButton('testPreflight', roomControlsDiv, async () => {
-  //     console.log('starting preflight');
-  //     preflightTest = Video.testPreflight(aliceToken, bobToken, { duration: 10000 });
-  //     const deferred = {};
-  //     deferred.promise = new Promise((resolve, reject) => {
-  //       deferred.resolve = resolve;
-  //       deferred.reject = reject;
-  //     });
+  if (typeof Video.testPreflight === 'function') {
+    let preflightTest = null;
+    createButton('preparePreflight', roomControlsDiv, async () => {
+      const aliceToken = (await getRoomCredentials()).token;
+      const bobToken = (await getRoomCredentials()).token;
+      createButton('testPreflight', roomControlsDiv, async () => {
+        console.log('starting preflight');
+        preflightTest = Video.testPreflight(aliceToken, bobToken, { duration: 10000 });
+        const deferred = {};
+        deferred.promise = new Promise((resolve, reject) => {
+          deferred.resolve = resolve;
+          deferred.reject = reject;
+        });
 
-  //     preflightTest.on('progress', progress => {
-  //       console.log('preflight progress:', progress);
-  //     });
+        preflightTest.on('debug', (room1, room2) => {
+          console.log('preflight debug:', room1, room2);
+          roomJoined(room1);
+          roomJoined(room2);
+        });
 
-  //     preflightTest.on('error', error => {
-  //       console.error('preflight error:', error);
-  //       deferred.reject(error);
-  //     });
+        preflightTest.on('progress', progress => {
+          console.log('preflight progress:', progress);
+        });
 
-  //     preflightTest.on('completed', report => {
-  //       console.log('preflight completed:', report);
-  //       deferred.resolve(report);
-  //     });
+        preflightTest.on('error', error => {
+          console.error('preflight error:', error);
+          deferred.reject(error);
+        });
 
-  //     await deferred.promise;
-  //   });
-  // });
+        preflightTest.on('completed', report => {
+          console.log('preflight completed:', JSON.stringify(report, null, 4));
+          deferred.resolve(report);
+        });
 
+        await deferred.promise;
+      });
+    });
+  }
   return {
     shouldAutoAttach: () => autoAttach.checked,
     shouldAutoPublish: () => autoPublish.checked,

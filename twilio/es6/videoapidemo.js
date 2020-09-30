@@ -5,6 +5,7 @@
 'use strict';
 
 import { createLog, log } from '../../jsutilmodules/log.js';
+import { createCollapsibleDiv } from '../../jsutilmodules/createCollapsibleDiv.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createLocalTracksControls } from './createLocalTracksControls.js';
 import { createRoomControls } from './createRoomControls.js';
@@ -18,7 +19,7 @@ export function demo(Video, containerDiv) {
   log("IsSupported: ", Video.isSupported);
   log("UserAgent: ", navigator.userAgent);
 
-  const container = createDiv(mainDiv, 'localControls', 'localControls');
+  const container = createCollapsibleDiv({ container: mainDiv, headerText: 'Local Controls', divClass: 'localControls' });
 
   const localTracks = [];
   const rooms = [];

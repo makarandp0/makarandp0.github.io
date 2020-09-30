@@ -1,9 +1,11 @@
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
+import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 import { log } from '../../jsutilmodules/log.js';
 import { renderTrack } from './renderTrack.js';
 import { updateTrackStats } from './renderLocalTrack.js';
+
 
 function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
   const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
@@ -55,6 +57,7 @@ function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
 export function renderParticipant(participant, container, shouldAutoAttach) {
   let participantContainer = createDiv(container, 'participantDiv', `participantContainer-${participant.identity}`);
   const name = createElement(participantContainer, { type: 'h3', classNames: ['participantName'] });
+
   name.innerHTML = participant.identity;
   const participantMedia = createDiv(participantContainer, 'participantMediaDiv');
   const renderedPublications = new Map();
@@ -98,11 +101,20 @@ export function renderRoom({ room, container, shouldAutoAttach }) {
   const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
 
   const roomSid = createElement(roomHeaderDiv, { type: 'h2', classNames: ['roomHeaderText'] });
-  roomSid.innerHTML = `Room: ${room.sid} LocalParticipant: ${room.localParticipant.identity}`;
+  roomSid.innerHTML = ` ${room.sid} `;
 
+  const localParticipant = createLabeledStat(container, 'localParticipant', { className: 'localParticipant', useValueToStyle: true });
+  localParticipant.setText(room.localParticipant.identity);
+  const roomState = createLabeledStat(container, 'state', { className: 'roomstate', useValueToStyle: true });
+
+  const updateRoomState = () => roomState.setText(room.state);
+  room.addListener('disconnected', updateRoomState);
+  room.addListener('reconnected', updateRoomState);
+  room.addListener('reconnecting', updateRoomState);
+  updateRoomState();
 
   const isDisconnected = room.disconnected;
-  const btnLeave = createButton('Leave', roomHeaderDiv, () => {
+  const btnDisconnect = createButton('disconnect', roomHeaderDiv, () => {
     room.disconnect();
     container.remove();
   });
@@ -111,7 +123,7 @@ export function renderRoom({ room, container, shouldAutoAttach }) {
   // from the room, if joined.
   window.addEventListener('beforeunload', () => room.disconnect());
 
-  btnLeave.show(!isDisconnected);
+  btnDisconnect.show(!isDisconnected);
 
   const renderedParticipants = new Map();
   const remoteParticipantsContainer = createDiv(container, 'remote-participants', 'remote-participants');

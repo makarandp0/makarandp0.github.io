@@ -6,18 +6,20 @@ import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
 import { renderLocalTrack } from './renderLocalTrack.js';
 
 export function createLocalTracksControls({ container, rooms, Video, localTracks, shouldAutoAttach, shouldAutoPublish }) {
+  container = createDiv(container, 'localTracks');
+
   let number = 0;
   const autoAudio = getBooleanUrlParam('autoAudio', false);
   const autoVideo = getBooleanUrlParam('autoVideo', false);
 
-  const localAudioTrackContainer = createDiv(container, 'audioTrackContainer', 'audioTrack');
-  const localVideoTrackContainer = createDiv(container, 'videoTrackContainer', 'videoTrack');
+  const localTrackButtonsContainer = createDiv(container, 'trackButtons');
+  const localTracksContainer = createDiv(container, 'trackRenders');
 
   const renderedTracks = new Map();
   function renderLocalTrack2(track) {
     localTracks.push(track);
     renderedTracks.set(track, renderLocalTrack({
-      container: track.kind === 'video' ? localVideoTrackContainer : localAudioTrackContainer,
+      container: localTracksContainer,
       rooms,
       track,
       shouldAutoAttach: shouldAutoAttach(),
@@ -33,14 +35,14 @@ export function createLocalTracksControls({ container, rooms, Video, localTracks
   }
 
   // eslint-disable-next-line no-unused-vars
-  const btnPreviewAudio = createButton('Local Audio', localAudioTrackContainer, async () => {
+  const btnPreviewAudio = createButton('+ Local Audio', localTrackButtonsContainer, async () => {
     const thisTrackName = 'mic-' + number++;
     const localTrack = await Video.createLocalAudioTrack({ logLevel: 'warn', name: thisTrackName });
     renderLocalTrack2(localTrack);
   });
 
   // eslint-disable-next-line no-unused-vars
-  const btnSyntheticAudio = createButton('Synthetic Audio', localAudioTrackContainer, async () => {
+  const btnSyntheticAudio = createButton('+ Synthetic Audio', localTrackButtonsContainer, async () => {
     const thisTrackName = 'Audio-' + number++;
     const msTrack = await generateAudioTrack(10);
     const localTrack = new Video.LocalAudioTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
@@ -48,14 +50,14 @@ export function createLocalTracksControls({ container, rooms, Video, localTracks
   });
 
   // eslint-disable-next-line no-unused-vars
-  const btnPreviewVideo = createButton('Local Video', localVideoTrackContainer, async () => {
+  const btnPreviewVideo = createButton('+ Local Video', localTrackButtonsContainer, async () => {
     const thisTrackName = 'camera-' + number++;
     const localTrack = await Video.createLocalVideoTrack({ logLevel: 'warn', name: thisTrackName });
     renderLocalTrack2(localTrack);
   });
 
   // eslint-disable-next-line no-unused-vars
-  const btnSyntheticVideo = createButton('Synthetic Video', localVideoTrackContainer, async () => {
+  const btnSyntheticVideo = createButton('+ Synthetic Video', localTrackButtonsContainer, async () => {
     const canvas = document.createElement('canvas');
     const thisTrackName = 'Video-' + number++;
     const msTrack = await generateVideoTrack(canvas, thisTrackName);

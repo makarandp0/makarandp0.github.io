@@ -20,7 +20,7 @@ export function attachAudioTrack(track, container) {
 // Attach the Track to the DOM.
 export function renderTrack({ track, container, shouldAutoAttach }) {
   const trackContainerId = track.sid || track.id;
-  const trackContainer = createDiv(container, track.kind + 'Container', trackContainerId);
+  const trackContainer = createDiv(container, 'trackContainer', trackContainerId);
   const { updateStats } = createTrackStats(track, trackContainer);
 
   const controlContainer = createDiv(trackContainer, 'trackControls');
