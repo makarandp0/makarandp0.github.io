@@ -5,9 +5,11 @@ import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import { createLabeledCheckbox } from '../../jsutilmodules/createLabeledCheckbox.js';
 import { createLabeledInput } from '../../jsutilmodules/createLabeledInput.js';
+import { createLink } from '../../jsutilmodules/createLink.js';
 import { createSelection } from '../../jsutilmodules/createSelection.js';
 import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
 import { log } from '../../jsutilmodules/log.js';
+
 
 /**
  *
@@ -38,9 +40,11 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     onChange: () => log('env change:', envSelect.getValue())
   });
 
+  // https://www.twilio.com/console/video/project/testing-tools
+  // createLink({ container: roomControlsDiv, linkText: 'Hello World', linkUrl: 'https://www.twilio.com/console/video/project/testing-tools' });
   const tokenInput = createLabeledInput({
     container: roomControlsDiv,
-    labelText: 'Token or TokenUrl: ',
+    labelText: createLink({ container: roomControlsDiv, linkText: 'Token or TokenUrl', linkUrl: 'https://www.twilio.com/console/video/project/testing-tools', newTab: true }),
     placeHolder: 'Enter token or token server url',
     labelClasses: ['tokenLabel'],
   });
@@ -81,7 +85,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   localIdentity.value = urlParams.get('identity') || randomName();
   const { protocol, host, pathname } = window.location;
   console.log({ protocol, host, pathname });
-  tokenInput.value = urlParams.get('token') || `${protocol}//${host}/token`;
+  tokenInput.value = urlParams.get('token') || 'http://localhost:3000/token'; // `${protocol}//${host}/token`;
 
   // note to specify connectOptions on url you must encodeURIComponent(JSON.stringify({logLevel: 'debug'}))
   extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'debug' });

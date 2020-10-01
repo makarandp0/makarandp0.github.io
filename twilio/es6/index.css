@@ -216,8 +216,10 @@ div#room-controls input {
   text-align: center;
 }
 
-div#room-controls label {
+div#room-controls label,
+div#room-controls a {
   margin-top: 10px;
+  margin-right:10px;
 }
 
 div#room-controls > button {
