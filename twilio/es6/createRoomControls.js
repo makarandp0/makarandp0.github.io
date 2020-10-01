@@ -4,6 +4,7 @@ import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import { createLabeledCheckbox } from '../../jsutilmodules/createLabeledCheckbox.js';
+import { createLabeledInput } from '../../jsutilmodules/createLabeledInput.js';
 import { createSelection } from '../../jsutilmodules/createSelection.js';
 import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
 import { log } from '../../jsutilmodules/log.js';
@@ -37,21 +38,35 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     onChange: () => log('env change:', envSelect.getValue())
   });
 
-  const identityLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['identityLabel'] });
-  identityLabel.innerHTML = 'Identity: ';
-  const localIdentity = createElement(roomControlsDiv, { type: 'input', id: 'localIdentity' });
-  localIdentity.placeholder = 'Enter identity or random one will be generated';
+  const tokenInput = createLabeledInput({
+    container: roomControlsDiv,
+    labelText: 'Token or TokenUrl: ',
+    placeHolder: 'Enter token or token server url',
+    labelClasses: ['tokenLabel'],
+  });
 
-  const roomNameLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['roomNameLabel'] });
-  roomNameLabel.innerHTML = 'Room: ';
-  const roomNameInput = createElement(roomControlsDiv, { type: 'input', id: 'room-name' });
-  roomNameInput.placeholder = 'Enter room name';
+  const localIdentity = createLabeledInput({
+    container: roomControlsDiv,
+    labelText: 'Identity: ',
+    placeHolder: 'Enter identity or random one will be generated',
+    labelClasses: ['identityLabel'],
+  });
 
-  const connectOptionsLabel = createElement(roomControlsDiv, { type: 'label', classNames: ['connectOptionsLabel'] });
-  connectOptionsLabel.innerHTML = 'ConnectOptions: ';
-  const extraConnectOptions = createElement(roomControlsDiv, { type: 'textarea', classNames: ['connectOptions'] });
-  extraConnectOptions.placeholder = 'connectOptions as json here';
+  const roomNameInput = createLabeledInput({
+    container: roomControlsDiv,
+    labelText: 'Room: ',
+    placeHolder: 'Enter room name or random name will be generated',
+    labelClasses: ['roomNameLabel'],
+  });
 
+  const extraConnectOptions = createLabeledInput({
+    container: roomControlsDiv,
+    labelText: 'ConnectOptions: ',
+    placeHolder: 'connectOptions as json here',
+    labelClasses: ['connectOptionsLabel'],
+    inputClasses: ['connectOptions'],
+    inputType: 'textarea'
+  });
 
   const controlOptionsDiv = createDiv(roomControlsDiv, 'control-options', 'control-options');
 
@@ -64,6 +79,9 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   const urlParams = new URLSearchParams(window.location.search);
   roomNameInput.value = urlParams.get('room') || randomRoomName();
   localIdentity.value = urlParams.get('identity') || randomName();
+  const { protocol, host, pathname } = window.location;
+  console.log({ protocol, host, pathname });
+  tokenInput.value = urlParams.get('token') || `${protocol}//${host}/token`;
 
   // note to specify connectOptions on url you must encodeURIComponent(JSON.stringify({logLevel: 'debug'}))
   extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'debug' });
@@ -80,30 +98,28 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
    */
 
   async function getRoomCredentials() {
-    const { protocol, host, pathname } = window.location;
-    console.log({ protocol, host, pathname });
-    let token = urlParams.get('token') || `${protocol}//${host}/token`;
-    let tokenUrl = null;
-
+    const identity = localIdentity.value || randomName();
+    let token = tokenInput.value;
     if (token.indexOf('http') >= 0) {
-      tokenUrl = token;
-      token = null;
-    } else {
-      // if real token is part of the url delete it.
-      urlParams.delete('token');
-      window.history.replaceState(null, '', window.encodeURI(`${protocol}//${host}${pathname}?${urlParams}`));
+      let tokenUrl = token;
+      const topology = topologySelect.getValue();
+      const environment = envSelect.getValue();
+      const roomName = roomNameInput.value;
+
+      let url = new URL(tokenUrl);
+
+      const tokenOptions = { environment, topology, roomName, identity };
+      url.search = new URLSearchParams(tokenOptions);
+      const response = await fetch(url);
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error(`Failed to obtain token from ${url}, Status: ${response.status}`);
+    } else if (token.length === 0) {
+      throw new Error('Must specify token or tokenUrl');
     }
 
-    const topology = topologySelect.getValue();
-    const environment = envSelect.getValue();
-    const roomName = roomNameInput.value;
-
-    let url = new URL(tokenUrl);
-    const identity = localIdentity.value || randomName();
-    const tokenOptions = { environment, topology, roomName, identity };
-    url.search = new URLSearchParams(tokenOptions);
-    const response = await fetch(url); // /?tokenUrl=http://localhost:3000/token
-    return response.json();
+    return { token, identity };
   }
 
   function joinRoom(token) {
@@ -141,8 +157,12 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   }
 
   const btnJoin = createButton('Join', roomControlsDiv, async () => {
-    const token = (await getRoomCredentials()).token;
-    return joinRoom(token);
+    try {
+      const token = (await getRoomCredentials()).token;
+      return joinRoom(token);
+    } catch (ex) {
+      log('Failed: ', ex);
+    }
   });
 
   if (autoJoin.checked) {
@@ -192,3 +212,5 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     shouldAutoPublish: () => autoPublish.checked,
   };
 }
+
+
