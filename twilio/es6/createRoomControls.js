@@ -214,6 +214,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   return {
     shouldAutoAttach: () => autoAttach.checked,
     shouldAutoPublish: () => autoPublish.checked,
+    getEnv: () => envSelect.getValue()
   };
 }
 

@@ -1,7 +1,9 @@
+/* eslint-disable no-console */
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import createLabeledStat from '../../jsutilmodules/labeledstat.js';
+import { createLink } from '../../jsutilmodules/createLink.js';
 import { log } from '../../jsutilmodules/log.js';
 import { renderTrack } from './renderTrack.js';
 import { updateTrackStats } from './renderLocalTrack.js';
@@ -96,17 +98,17 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
   };
 }
 
-export function renderRoom({ room, container, shouldAutoAttach }) {
+export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) {
+  const baseUrl = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
   container = createDiv(container, 'room-container');
   const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
 
   const roomSid = createElement(roomHeaderDiv, { type: 'h2', classNames: ['roomHeaderText'] });
   roomSid.innerHTML = ` ${room.sid} `;
-
   const localParticipant = createLabeledStat(container, 'localParticipant', { className: 'localParticipant', useValueToStyle: true });
   localParticipant.setText(room.localParticipant.identity);
   const roomState = createLabeledStat(container, 'state', { className: 'roomstate', useValueToStyle: true });
-
+  createLink({ container, linkText: `${baseUrl}/v1/Rooms/${room.sid}`, linkUrl: `${baseUrl}/v1/Rooms/${room.sid}`, newTab: true });
   const updateRoomState = () => roomState.setText(room.state);
   room.addListener('disconnected', updateRoomState);
   room.addListener('reconnected', updateRoomState);
@@ -117,6 +119,30 @@ export function renderRoom({ room, container, shouldAutoAttach }) {
   const btnDisconnect = createButton('disconnect', roomHeaderDiv, () => {
     room.disconnect();
     container.remove();
+  });
+
+  const auth = {
+    prod: {
+      accountSID: 'ACXXXX',
+      authToken: 'AUTH_TOKEN_HERE',
+    },
+    stage: {
+      accountSID: 'ACXXXX',
+      authToken: 'AUTH_TOKEN_HERE',
+    }
+  }[env];
+
+  createButton('copy recording rules', roomHeaderDiv, () => {
+    const command = `curl -X GET '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' u '${auth.accountSID}:${auth.authToken}'`;
+    navigator.clipboard.writeText(command);
+  });
+
+  createButton('copy start recording', roomHeaderDiv, () => {
+    const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
+    -u '${auth.accountSID}:${auth.authToken}' \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d 'Rules=[{"type": "include", "kind": "audio"}]'`;
+    navigator.clipboard.writeText(command);
   });
 
   // When we are about to transition away from this page, disconnect

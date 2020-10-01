@@ -24,7 +24,7 @@ export function demo(Video, containerDiv) {
   const localTracks = [];
   const rooms = [];
   window.rooms = rooms;
-  const  { shouldAutoAttach, shouldAutoPublish } = createRoomControls({
+  const  { shouldAutoAttach, shouldAutoPublish, getEnv } = createRoomControls({
     container,
     Video,
     localTracks,
@@ -45,7 +45,7 @@ export function demo(Video, containerDiv) {
     rooms.push(room);
     roomAdded(room);
     log(`Joined ${room.sid} as "${room.localParticipant.identity}"`);
-    renderRoom({ room, container: mainDiv, shouldAutoAttach });
+    renderRoom({ room, container: mainDiv, shouldAutoAttach, env: getEnv() });
     room.on('disconnected', (_, err) => {
       log(`Left ${room.sid} as "${room.localParticipant.identity}"`);
       if (err) {
