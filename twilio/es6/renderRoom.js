@@ -11,26 +11,30 @@ import { updateTrackStats } from './renderLocalTrack.js';
 
 function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
   const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
-  const publicationContainer = createDiv(container, 'publication', trackContainerId);
-  const trackSid = createElement(publicationContainer, { type: 'h6', classNames: ['participantSid'] });
+  container = createDiv(container, 'publication', trackContainerId);
+  const trackSid = createElement(container, { type: 'h6', classNames: ['participantSid'] });
   trackSid.innerHTML = `${trackPublication.kind}:${trackPublication.trackSid}`;
 
   let renderedTrack = null;
-  if (trackPublication.isSubscribed) {
+  let statBytes = null;
+  function renderLocalTrack() {
     renderedTrack = renderTrack({
       track: trackPublication.track,
-      container: publicationContainer,
+      container,
       shouldAutoAttach
     });
+    const trackBytesDiv = createDiv(container, 'remoteTrackControls');
+    statBytes = createLabeledStat(trackBytesDiv, 'bytes recd', { className: 'bytes', useValueToStyle: true });
+    statBytes.setText('0');
+  }
+
+  if (trackPublication.isSubscribed) {
+    renderLocalTrack();
   }
 
   trackPublication.on('subscribed', function(track) {
     log(`Subscribed to ${trackPublication.kind}:${track.name}`);
-    renderedTrack = renderTrack({
-      track: track,
-      container: publicationContainer,
-      shouldAutoAttach
-    });
+    renderLocalTrack();
   });
 
   trackPublication.on('unsubscribed', () => {
@@ -39,29 +43,29 @@ function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
   });
 
   return {
-    updateStats: (...args) => {
-      if (renderedTrack) {
-        renderedTrack.updateStats(...args);
+    setBytesReceived: bytesReceived => {
+      if (statBytes) {
+        statBytes.setText(bytesReceived);
       }
     },
     trackPublication,
-    publicationContainer,
+    container,
     stopRendering: () => {
       if (renderedTrack) {
         renderedTrack.stopRendering();
         renderedTrack = null;
       }
-      container.removeChild(publicationContainer);
+      container.remove();
     }
   };
 }
 
 export function renderParticipant(participant, container, shouldAutoAttach) {
-  let participantContainer = createDiv(container, 'participantDiv', `participantContainer-${participant.identity}`);
-  const name = createElement(participantContainer, { type: 'h3', classNames: ['participantName'] });
+  container = createDiv(container, 'participantDiv', `participantContainer-${participant.identity}`);
+  const name = createElement(container, { type: 'h3', classNames: ['participantName'] });
 
   name.innerHTML = participant.identity;
-  const participantMedia = createDiv(participantContainer, 'participantMediaDiv');
+  const participantMedia = createDiv(container, 'participantMediaDiv');
   const renderedPublications = new Map();
   participant.tracks.forEach(publication => {
     const rendered = renderTrackPublication(publication, participantMedia, shouldAutoAttach());
@@ -80,11 +84,11 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
     }
   });
   return {
-    container: participantContainer,
+    container,
     updateStats: ({ trackSid, bytesReceived }) => {
       [...renderedPublications.keys()].forEach(thisTrackSid => {
         if (trackSid === thisTrackSid) {
-          renderedPublications.get(thisTrackSid).updateStats('bytes', bytesReceived);
+          renderedPublications.get(thisTrackSid).setBytesReceived(bytesReceived);
         }
       });
     },
@@ -93,7 +97,7 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
         renderedPublications.get(trackSid).stopRendering();
         renderedPublications.delete(trackSid);
       });
-      container.removeChild(participantContainer);
+      container.remove();
     }
   };
 }
@@ -133,7 +137,7 @@ export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) 
   }[env];
 
   createButton('copy recording rules', roomHeaderDiv, () => {
-    const command = `curl -X GET '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' u '${auth.accountSID}:${auth.authToken}'`;
+    const command = `curl -X GET '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' -u '${auth.accountSID}:${auth.authToken}'`;
     navigator.clipboard.writeText(command);
   });
 
@@ -141,9 +145,18 @@ export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) 
     const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
     -u '${auth.accountSID}:${auth.authToken}' \
     -H "Content-Type: application/x-www-form-urlencoded" \
-    -d 'Rules=[{"type": "include", "kind": "audio"}]'`;
+    -d 'Rules=[{"type": "include", "all": "true"}]'`;
     navigator.clipboard.writeText(command);
   });
+
+  createButton('copy stop recording', roomHeaderDiv, () => {
+    const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
+    -u '${auth.accountSID}:${auth.authToken}' \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d 'Rules=[{"type": "exclude", "all": "true"}]'`;
+    navigator.clipboard.writeText(command);
+  });
+
 
   // When we are about to transition away from this page, disconnect
   // from the room, if joined.

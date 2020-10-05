@@ -48,6 +48,7 @@ div#main video {
 }
 
 div.room-container {
+  margin: 5px;
   border: solid black 2px;
 }
 
@@ -103,7 +104,8 @@ div.publication {
   padding: 5px;
 }
 
-div.localTrackControls {
+div.localTrackControls,
+div.remoteTrackControls {
   /* since it attaches to track container */
   /* does not need top border */
   border-bottom: solid 1px black;

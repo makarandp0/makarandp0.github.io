@@ -48,7 +48,7 @@ app supports various url parameters
 
 | parameter     | usage                                 | default  |
 | ------------- |:--------------------------------------|:--------|
-| room          | if specified used as the name of the room to join |  |
+| room          | if specified used as the name of the room to join | auto generated |
 | identity      | if specified used as identity to join the room  | auto generated   |
 | autoJoin      | if true app joins specified room after page load  | `false`   |
 | autoPublish   | if not false app publishes tracks as they are created  | `true`   |
