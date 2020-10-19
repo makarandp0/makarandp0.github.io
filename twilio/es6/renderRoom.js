@@ -102,17 +102,70 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
   };
 }
 
-export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) {
-  const baseUrl = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
+function createRoomButtons({ room, baseUrl, container, creds }) {
+
+  createLink({ container, linkText: 'RecordingRules', linkUrl: `${baseUrl}/v1/Rooms/${room.sid}/RecordingRules`, newTab: true });
+
+  createButton('copy start recording', container, () => {
+    const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
+    -u '${creds.accountSid}:${creds.authToken}' \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d 'Rules=[{"type": "include", "all": "true"}]'`;
+    navigator.clipboard.writeText(command);
+  });
+
+  createButton('copy stop recording', container, () => {
+    const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
+    -u '${creds.accountSid}:${creds.authToken}' \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d 'Rules=[{"type": "exclude", "all": "true"}]'`;
+    navigator.clipboard.writeText(command);
+  });
+
+}
+
+
+export async function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) {
+  let credentialsAt;
+  let creds;
+  try {
+    console.log('rendering room');
+    const auth = await import('../app/server/twilio_credentials.json');
+    creds = auth[env];
+    credentialsAt = `${creds.accountSid}:${creds.authToken}@`;
+  } catch (e) {
+    log('failed to load credentials: ', e);
+    credentialsAt = '';
+  }
+
+  const baseUrlNoCredentials = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
+  const baseUrl = env === 'prod' ? `https://${credentialsAt}video.twilio.com` : `https://${credentialsAt}video.${env}.twilio.com`;
+
+  // const baseUrlNoCredentials = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
   container = createDiv(container, 'room-container');
   const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
 
   const roomSid = createElement(roomHeaderDiv, { type: 'h2', classNames: ['roomHeaderText'] });
   roomSid.innerHTML = ` ${room.sid} `;
+  createRoomButtons({ env, room, baseUrl, container, creds });
   const localParticipant = createLabeledStat(container, 'localParticipant', { className: 'localParticipant', useValueToStyle: true });
   localParticipant.setText(room.localParticipant.identity);
   const roomState = createLabeledStat(container, 'state', { className: 'roomstate', useValueToStyle: true });
-  createLink({ container, linkText: `${baseUrl}/v1/Rooms/${room.sid}`, linkUrl: `${baseUrl}/v1/Rooms/${room.sid}`, newTab: true });
+  createLink({ container, linkText: `/v1/Rooms/${room.sid}`, linkUrl: `${baseUrl}/v1/Rooms/${room.sid}`, newTab: true });
+
+  // this works.
+  // createButton('fetch room', roomHeaderDiv, async () => {
+  //   try {
+  //     var headers = new Headers();
+  //     headers.append('Authorization', 'Basic ' + btoa(creds.signingKeySid + ':' + creds.signingKeySecret));
+  //     const result = await fetch(`${baseUrlNoCredentials}/v1/Rooms/${room.sid}`, { headers });
+  //     log(result);
+  //   } catch (e) {
+  //     log('Error fetching: ', e);
+  //   }
+  // });
+
+
   const updateRoomState = () => roomState.setText(room.state);
   room.addListener('disconnected', updateRoomState);
   room.addListener('reconnected', updateRoomState);
@@ -124,39 +177,6 @@ export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) 
     room.disconnect();
     container.remove();
   });
-
-  const auth = {
-    prod: {
-      accountSID: 'ACXXXX',
-      authToken: 'AUTH_TOKEN_HERE',
-    },
-    stage: {
-      accountSID: 'ACXXXX',
-      authToken: 'AUTH_TOKEN_HERE',
-    }
-  }[env];
-
-  createButton('copy recording rules', roomHeaderDiv, () => {
-    const command = `curl -X GET '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' -u '${auth.accountSID}:${auth.authToken}'`;
-    navigator.clipboard.writeText(command);
-  });
-
-  createButton('copy start recording', roomHeaderDiv, () => {
-    const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
-    -u '${auth.accountSID}:${auth.authToken}' \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d 'Rules=[{"type": "include", "all": "true"}]'`;
-    navigator.clipboard.writeText(command);
-  });
-
-  createButton('copy stop recording', roomHeaderDiv, () => {
-    const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
-    -u '${auth.accountSID}:${auth.authToken}' \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d 'Rules=[{"type": "exclude", "all": "true"}]'`;
-    navigator.clipboard.writeText(command);
-  });
-
 
   // When we are about to transition away from this page, disconnect
   // from the room, if joined.

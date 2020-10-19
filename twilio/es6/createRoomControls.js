@@ -27,7 +27,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   const topologySelect = createSelection({
     id: 'topology',
     container: roomControlsDiv,
-    options: ['group-small', 'peer-to-peer', 'group'],
+    options: ['group-small', 'peer-to-peer', 'group', 'go'],
     title: 'topology',
     onChange: () => log('topology change:', topologySelect.getValue())
   });
@@ -85,8 +85,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   console.log({ protocol, host, pathname });
   tokenInput.value = urlParams.get('token') || `${protocol}//${host}/token`; // 'http://localhost:3000/token'
 
-  // note to specify connectOptions on url you must encodeURIComponent(JSON.stringify({logLevel: 'debug'}))
-  extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'debug' });
+  extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'warn' });
   autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
   topologySelect.setValue(urlParams.get('topology') || 'group-small');
   envSelect.setValue(urlParams.get('env') || 'prod');

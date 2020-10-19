@@ -11,6 +11,7 @@ module.exports = {
     ],
   },
   entry: {
+    foo: './src/tokens.js',
     app: './src/app.js',
     admin: './src/admin.js'
   },
