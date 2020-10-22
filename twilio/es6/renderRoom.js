@@ -4,10 +4,10 @@ import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 import { createLink } from '../../jsutilmodules/createLink.js';
+import { getCreds } from './getCreds.js';
 import { log } from '../../jsutilmodules/log.js';
 import { renderTrack } from './renderTrack.js';
 import { updateTrackStats } from './renderLocalTrack.js';
-
 
 function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
   const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
@@ -102,13 +102,26 @@ export function renderParticipant(participant, container, shouldAutoAttach) {
   };
 }
 
-function createRoomButtons({ room, baseUrl, container, creds }) {
+async function createRoomButtons({ room, container, env }) {
+  let credentialsAt;
+  let creds;
+  try {
+    console.log('rendering room:', env);
+    creds = await getCreds(env);
+    console.log(creds);
+    credentialsAt = `${creds.signingKeySid}:${creds.signingKeySecret}@`;
+  } catch (e) {
+    log('failed to load credentials: ', e);
+    credentialsAt = '';
+  }
+
+  const baseUrl = env === 'prod' ? `https://${credentialsAt}video.twilio.com` : `https://${credentialsAt}video.${env}.twilio.com`;
 
   createLink({ container, linkText: 'RecordingRules', linkUrl: `${baseUrl}/v1/Rooms/${room.sid}/RecordingRules`, newTab: true });
 
   createButton('copy start recording', container, () => {
     const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
-    -u '${creds.accountSid}:${creds.authToken}' \
+    -u '${creds.signingKeySid}:${creds.signingKeySecret}' \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d 'Rules=[{"type": "include", "all": "true"}]'`;
     navigator.clipboard.writeText(command);
@@ -116,41 +129,12 @@ function createRoomButtons({ room, baseUrl, container, creds }) {
 
   createButton('copy stop recording', container, () => {
     const command = `curl -X POST '${baseUrl}/v1/Rooms/${room.sid}/RecordingRules' \
-    -u '${creds.accountSid}:${creds.authToken}' \
+    -u '${creds.signingKeySid}:${creds.signingKeySecret}' \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d 'Rules=[{"type": "exclude", "all": "true"}]'`;
     navigator.clipboard.writeText(command);
   });
 
-}
-
-
-export async function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) {
-  let credentialsAt;
-  let creds;
-  try {
-    console.log('rendering room');
-    const auth = await import('../app/server/twilio_credentials.json');
-    creds = auth[env];
-    credentialsAt = `${creds.accountSid}:${creds.authToken}@`;
-  } catch (e) {
-    log('failed to load credentials: ', e);
-    credentialsAt = '';
-  }
-
-  const baseUrlNoCredentials = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
-  const baseUrl = env === 'prod' ? `https://${credentialsAt}video.twilio.com` : `https://${credentialsAt}video.${env}.twilio.com`;
-
-  // const baseUrlNoCredentials = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
-  container = createDiv(container, 'room-container');
-  const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
-
-  const roomSid = createElement(roomHeaderDiv, { type: 'h2', classNames: ['roomHeaderText'] });
-  roomSid.innerHTML = ` ${room.sid} `;
-  createRoomButtons({ env, room, baseUrl, container, creds });
-  const localParticipant = createLabeledStat(container, 'localParticipant', { className: 'localParticipant', useValueToStyle: true });
-  localParticipant.setText(room.localParticipant.identity);
-  const roomState = createLabeledStat(container, 'state', { className: 'roomstate', useValueToStyle: true });
   createLink({ container, linkText: `/v1/Rooms/${room.sid}`, linkUrl: `${baseUrl}/v1/Rooms/${room.sid}`, newTab: true });
 
   // this works.
@@ -164,6 +148,22 @@ export async function renderRoom({ room, container, shouldAutoAttach, env = 'pro
   //     log('Error fetching: ', e);
   //   }
   // });
+
+}
+
+
+export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) {
+
+  // const baseUrlNoCredentials = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
+  container = createDiv(container, 'room-container');
+  const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
+
+  const roomSid = createElement(roomHeaderDiv, { type: 'h2', classNames: ['roomHeaderText'] });
+  roomSid.innerHTML = ` ${room.sid} `;
+  createRoomButtons({ env, room, container  });
+  const localParticipant = createLabeledStat(container, 'localParticipant', { className: 'localParticipant', useValueToStyle: true });
+  localParticipant.setText(room.localParticipant.identity);
+  const roomState = createLabeledStat(container, 'state', { className: 'roomstate', useValueToStyle: true });
 
 
   const updateRoomState = () => roomState.setText(room.state);
