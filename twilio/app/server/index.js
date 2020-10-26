@@ -42,14 +42,15 @@ function createAccessToken({ environment = 'prod', identity, roomName }) {
   return accessTokenGenerator.toJwt();
 }
 
-async function createRoom({ environment = 'prod', topology, roomName }) {
+async function createRoom({ environment = 'prod', topology, roomName, recordParticipantsOnConnect }) {
   const { accountSid, signingKeySid, signingKeySecret } = getCredentials(environment);
   const { video } = twilio(signingKeySid, signingKeySecret, {
     accountSid,
     region: environment === 'prod' ? null : environment
   });
 
-  const result = await video.rooms.create({ type: topology, uniqueName: roomName }).catch(error => {
+  console.log('recordParticipantsOnConnect: ', recordParticipantsOnConnect);
+  const result = await video.rooms.create({ type: topology, uniqueName: roomName, recordParticipantsOnConnect }).catch(error => {
     if (error.code !== 53113) {
       console.log('Error creating room: ', error);
       throw error;
@@ -77,10 +78,10 @@ const app = express();
 app.use(cors({ origin: true }));
 
 app.get('/token', async function(request, response) {
-  const { identity = randomName(), environment = 'prod', topology, roomName } = request.query;
+  const { identity = randomName(), environment = 'prod', topology, roomName, recordParticipantsOnConnect } = request.query;
   if (topology) {
     // topology was specified, have to create room
-    const result = await createRoom({ environment, roomName, topology });
+    const result = await createRoom({ environment, roomName, topology, recordParticipantsOnConnect });
 
     response.set('Content-Type', 'application/json');
 
@@ -96,8 +97,8 @@ app.get('/token', async function(request, response) {
 // creates a room and a token for it.
 app.get('/getOrCreateRoom', async function(request, response, next) {
   try {
-    const { roomName, topology, environment } = request.query;
-    const result = await createRoom({ environment, roomName, topology });
+    const { roomName, topology, environment, recordParticipantsOnConnect } = request.query;
+    const result = await createRoom({ environment, roomName, topology, recordParticipantsOnConnect });
     response.set('Content-Type', 'application/json');
     result.token = createAccessToken({ environment, roomName, topology });
     response.send(result);

@@ -1,7 +1,9 @@
+/* eslint-disable no-console */
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import createLabeledStat from '../../jsutilmodules/labeledstat.js';
+import { log } from '../../jsutilmodules/log.js';
 import { renderTrack } from './renderTrack.js';
 
 const publishControls = new Map(); //  Map(track => Map( room => publishControl ))
@@ -72,16 +74,35 @@ function createRoomPublishControls(container, room, track, shouldAutoPublish) {
   };
 }
 
-export function renderLocalTrack({ rooms, track, container, shouldAutoAttach, shouldAutoPublish, onClosed }) {
+export function renderLocalTrack({ rooms, track, container, shouldAutoAttach, shouldAutoPublish, onClosed, videoDevices = [] }) {
   const localTrackContainer = createDiv(container, 'localTrackContainer');
   const { stopRendering } = renderTrack({ track, container: localTrackContainer, shouldAutoAttach });
 
   const localTrackControls = createDiv(localTrackContainer, 'localTrackControls');
   createButton('disable', localTrackControls, () => track.disable());
   createButton('enable', localTrackControls, () => track.enable());
-  createButton('stop', localTrackControls, () => track.stop());
-  createButton('msstop', localTrackControls, () => {
-    track.mediaStreamTrack.stop();
+  createButton('stop', localTrackControls, () => {
+    log('stopping track');
+    track.stop();
+    log('done stopping track');
+  });
+
+  createButton('restart', localTrackControls, () => {
+    track.restart().catch(err => {
+      console.log('track.restart failed', err);
+    });
+  });
+
+  videoDevices.forEach(device => {
+    createButton(`restart: ${device.label}`, localTrackControls, () => {
+      const videoConstraints = {
+        deviceId: { exact: device.deviceId },
+      };
+      console.log('calling restart with: ', videoConstraints);
+      track.restart(videoConstraints).catch(err => {
+        console.log('track.restart failed', err);
+      });
+    });
   });
 
   const trackPublishControls = new Map(); // room => publishControl

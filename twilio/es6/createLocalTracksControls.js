@@ -1,8 +1,10 @@
+/* eslint-disable no-console */
 import createButton from '../../jsutilmodules/button.js';
 import { createDiv } from '../../jsutilmodules/createDiv.js';
 import generateAudioTrack from '../../jsutilmodules/syntheticaudio.js';
 import generateVideoTrack from '../../jsutilmodules/syntheticvideo.js';
 import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
+import { getDeviceSelectionOptions } from '../../jsutilmodules/getDeviceSelectionOptions.js';
 import { renderLocalTrack } from './renderLocalTrack.js';
 
 export function createLocalTracksControls({ container, rooms, Video, localTracks, shouldAutoAttach, shouldAutoPublish }) {
@@ -16,12 +18,13 @@ export function createLocalTracksControls({ container, rooms, Video, localTracks
   const localTracksContainer = createDiv(container, 'trackRenders');
 
   const renderedTracks = new Map();
-  function renderLocalTrack2(track) {
+  function renderLocalTrack2(track, videoDevices) {
     localTracks.push(track);
     renderedTracks.set(track, renderLocalTrack({
       container: localTracksContainer,
       rooms,
       track,
+      videoDevices,
       shouldAutoAttach: shouldAutoAttach(),
       shouldAutoPublish: shouldAutoPublish(),
       onClosed: () => {
@@ -63,6 +66,23 @@ export function createLocalTracksControls({ container, rooms, Video, localTracks
     const msTrack = await generateVideoTrack(canvas, thisTrackName);
     const localTrack = new Video.LocalVideoTrack(msTrack, { logLevel: 'warn', name: thisTrackName });
     renderLocalTrack2(localTrack);
+  });
+
+  // eslint-disable-next-line no-unused-vars
+  const enumerateBtn = createButton('Enumerate Cameras', localTrackButtonsContainer, async () => {
+    enumerateBtn.disable();
+    const devices = await getDeviceSelectionOptions();
+    devices.videoinput.forEach((device, i, videoDevices) => {
+      createButton(device.label, localTrackButtonsContainer, async () => {
+        const videoConstraints = {
+          deviceId: { exact: device.deviceId },
+        };
+        const thisTrackName = 'camera-' + number++;
+        const localTrack = await Video.createLocalVideoTrack({ logLevel: 'warn', name: thisTrackName, ...videoConstraints });
+
+        renderLocalTrack2(localTrack, videoDevices);
+      });
+    });
   });
 
   if (autoAudio) {

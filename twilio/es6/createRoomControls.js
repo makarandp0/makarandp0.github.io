@@ -10,7 +10,6 @@ import { createSelection } from '../../jsutilmodules/createSelection.js';
 import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
 import { log } from '../../jsutilmodules/log.js';
 
-
 /**
  *
  * @param {*} container
@@ -76,6 +75,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   const autoPublish = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Auto Publish', id: 'autoPublish' });
   const autoAttach = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Auto Attach', id: 'autoAttach' });
   const autoJoin = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Auto Join', id: 'autoJoin' });
+  const autoRecord = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Record Participant', id: 'recordParticipant' });
 
   // process parameters.
   const urlParams = new URLSearchParams(window.location.search);
@@ -85,12 +85,13 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   console.log({ protocol, host, pathname });
   tokenInput.value = urlParams.get('token') || `${protocol}//${host}/token`; // 'http://localhost:3000/token'
 
-  extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'warn' });
+  extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'debug' });
   autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
   topologySelect.setValue(urlParams.get('topology') || 'group-small');
   envSelect.setValue(urlParams.get('env') || 'prod');
   autoAttach.checked = getBooleanUrlParam('autoAttach', true);
   autoPublish.checked = getBooleanUrlParam('autoPublish', true);
+  autoRecord.checked = getBooleanUrlParam('record', true);
 
   /**
    * Get the Room credentials from the server.
@@ -106,10 +107,11 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
       const topology = topologySelect.getValue();
       const environment = envSelect.getValue();
       const roomName = roomNameInput.value;
+      const recordParticipantsOnConnect = autoRecord.checked;
 
       let url = new URL(tokenUrl);
 
-      const tokenOptions = { environment, topology, roomName, identity };
+      const tokenOptions = { environment, topology, roomName, identity, recordParticipantsOnConnect };
       url.search = new URLSearchParams(tokenOptions);
       const response = await fetch(url);
       if (response.ok) {
@@ -157,6 +159,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
       });
   }
 
+  // eslint-disable-next-line consistent-return
   const btnJoin = createButton('Join', roomControlsDiv, async () => {
     try {
       const token = (await getRoomCredentials()).token;

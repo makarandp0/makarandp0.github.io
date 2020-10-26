@@ -106,9 +106,7 @@ async function createRoomButtons({ room, container, env }) {
   let credentialsAt;
   let creds;
   try {
-    console.log('rendering room:', env);
     creds = await getCreds(env);
-    console.log(creds);
     credentialsAt = `${creds.signingKeySid}:${creds.signingKeySecret}@`;
   } catch (e) {
     log('failed to load credentials: ', e);
@@ -164,13 +162,24 @@ export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) 
   const localParticipant = createLabeledStat(container, 'localParticipant', { className: 'localParticipant', useValueToStyle: true });
   localParticipant.setText(room.localParticipant.identity);
   const roomState = createLabeledStat(container, 'state', { className: 'roomstate', useValueToStyle: true });
+  const recording = createLabeledStat(container, 'isRecording', { className: 'recording', useValueToStyle: true });
 
 
+  const updateRecordingState = () => recording.setText(room.isRecording);
   const updateRoomState = () => roomState.setText(room.state);
   room.addListener('disconnected', updateRoomState);
   room.addListener('reconnected', updateRoomState);
   room.addListener('reconnecting', updateRoomState);
+  room.addListener('recordingStarted', () => {
+    log('recordingStarted');
+    updateRecordingState();
+  });
+  room.addListener('recordingStopped', () => {
+    log('recordingStopped');
+    updateRecordingState();
+  });
   updateRoomState();
+  updateRecordingState();
 
   const isDisconnected = room.disconnected;
   const btnDisconnect = createButton('disconnect', roomHeaderDiv, () => {
