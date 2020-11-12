@@ -1,5 +1,6 @@
 {
   "cSpell.words": [
+    "creds",
     "devtool",
     "jsutilmodules",
     "msstop",
@@ -9,6 +10,7 @@
     "synthetictrack",
     "syntheticvideo",
     "videoapidemo",
+    "videoinput",
     "visibilitychange"
   ]
 }
