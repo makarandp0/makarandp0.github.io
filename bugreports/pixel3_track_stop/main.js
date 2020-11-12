@@ -2,9 +2,8 @@
 /* eslint-disable no-console */
 
 const steps = "This sample helps demonstrate the pixel3  issue\r\n  \
-  https://bugs.chromium.org/p/chromium/issues/detail?id=1127625\r\n \
-  which results in browser freezing when a track is stopped \r\n \
-  Failed to execute 'setLocalDescription' on 'RTCPeerConnection': Failed to set local offer sdp: Unknown transceiver\r\n \
+  https://bugs.chromium.org/p/chromium/issues/detail?id=1148532\r\n \
+  which results in browser freezing when a track is stopped on Pixel3 phones \r\n \
   Step  1: click on demo \r\n \
   Step  2: click on stop\r\n \
   * Notice that chrome freezes on pixel 3\r\n \
