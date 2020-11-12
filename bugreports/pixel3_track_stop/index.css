@@ -1,0 +1,49 @@
+@import url(https://fonts.googleapis.com/css?family=Share+Tech+Mono);
+
+.pc {
+  display: flex;
+  margin: 20px;
+  padding: 20px;
+}
+
+.sdp {
+  margin: 2px;
+  padding: 2px;
+  width: 400px;
+  height: 400px;
+}
+
+.controls {
+  margin: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sdpDiv {
+  display: flex;
+  flex-direction: column;
+}
+
+video {
+  width: 100px;
+}
+
+button {
+  height: 4em;
+  margin: 5px;
+}
+
+.localVideo {
+  border: solid green 2px;
+}
+
+.remoteVideo {
+  border: solid red 2px;
+}
+
+.log {
+  border: solid black 2px;
+  width: 16em;
+  margin: 0 1.5em;
+  text-align: center;
+}

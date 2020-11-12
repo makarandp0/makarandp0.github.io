@@ -135,6 +135,15 @@ async function createRoomButtons({ room, container, env }) {
 
   createLink({ container, linkText: `/v1/Rooms/${room.sid}`, linkUrl: `${baseUrl}/v1/Rooms/${room.sid}`, newTab: true });
 
+  createButton('check stats', container, () => {
+    room.getStats().then(function(value) {
+      if (value && value.length) {
+        value[0].remoteAudioTrackStats.forEach(function(track) {
+          log(`track.trackSid: ${track.trackSid} level ${track.audioLevel}`);
+        });
+      }
+    });
+  });
   // this works.
   // createButton('fetch room', roomHeaderDiv, async () => {
   //   try {
@@ -146,7 +155,6 @@ async function createRoomButtons({ room, container, env }) {
   //     log('Error fetching: ', e);
   //   }
   // });
-
 }
 
 

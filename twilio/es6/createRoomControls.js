@@ -36,7 +36,17 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     container: roomControlsDiv,
     options: ['dev', 'stage', 'prod'],
     title: 'env',
-    onChange: () => log('env change:', envSelect.getValue())
+    onChange: () => {
+      const newEnv = envSelect.getValue();
+      if (newEnv === 'dev') {
+        // eslint-disable-next-line no-use-before-define
+        extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ wsServer: 'wss://us2.vss.dev.twilio.com/signaling' });
+      } else {
+        // eslint-disable-next-line no-use-before-define
+        extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'warn' });
+      }
+      log('env change:', newEnv);
+    }
   });
 
   const tokenInput = createLabeledInput({
@@ -85,13 +95,15 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   console.log({ protocol, host, pathname });
   tokenInput.value = urlParams.get('token') || `${protocol}//${host}/token`; // 'http://localhost:3000/token'
 
-  extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'debug' });
+  // for working with dev env use: {"wsServer":"wss://us2.vss.dev.twilio.com/signaling"}
+  extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'warn' });
   autoJoin.checked = urlParams.has('room') && urlParams.has('autoJoin');
   topologySelect.setValue(urlParams.get('topology') || 'group-small');
+  // wsServer.value = urlParams.get('wsserver');
   envSelect.setValue(urlParams.get('env') || 'prod');
   autoAttach.checked = getBooleanUrlParam('autoAttach', true);
   autoPublish.checked = getBooleanUrlParam('autoPublish', true);
-  autoRecord.checked = getBooleanUrlParam('record', true);
+  autoRecord.checked = getBooleanUrlParam('record', false);
 
   /**
    * Get the Room credentials from the server.
