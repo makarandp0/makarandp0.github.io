@@ -23,7 +23,7 @@ export function demo(Video, containerDiv) {
 
   const localTracks = [];
   const rooms = [];
-  window.rooms = rooms;
+  window.Twilio = { Video, rooms };
   const  { shouldAutoAttach, shouldAutoPublish, getEnv } = createRoomControls({
     container,
     Video,
@@ -41,11 +41,16 @@ export function demo(Video, containerDiv) {
   });
 
   // Successfully connected!
-  function roomJoined(room) {
+  function roomJoined(room, logger) {
+    logger = logger || Video.Logger.getLogger('twilio-video');
     rooms.push(room);
+    // var tag = document.createElement('script');
+    // tag.src = 'http://localhost:1234/index.js';
+    // window.getTwilioRoom = () => room; // Update this function to return your Twilio Room object
+    // document.body.appendChild(tag);
     roomAdded(room);
     log(`Joined ${room.sid} as "${room.localParticipant.identity}"`);
-    renderRoom({ room, container: mainDiv, shouldAutoAttach, env: getEnv() });
+    renderRoom({ room, container: mainDiv, shouldAutoAttach, env: getEnv(), logger });
     room.on('disconnected', (_, err) => {
       log(`Left ${room.sid} as "${room.localParticipant.identity}"`);
       if (err) {

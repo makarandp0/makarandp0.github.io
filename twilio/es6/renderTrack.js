@@ -26,6 +26,9 @@ export function renderTrack({ track, container, shouldAutoAttach }) {
   const controlContainer = createDiv(trackContainer, 'trackControls');
 
   createButton('update', controlContainer, () => updateStats('update'));
+  createButton('setPriority High', controlContainer, () => {
+    track.setPriority('low');
+  });
 
   let mediaControls = null;
   const attachDetachBtn = createButton('attach', controlContainer, () => {

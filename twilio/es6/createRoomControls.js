@@ -10,6 +10,38 @@ import { createSelection } from '../../jsutilmodules/createSelection.js';
 import { getBooleanUrlParam } from '../../jsutilmodules/getBooleanUrlParam.js';
 import { log } from '../../jsutilmodules/log.js';
 
+function handleSDKLogs(logger) {
+  const originalFactory = logger.methodFactory;
+  logger.methodFactory = function(methodName, level, loggerName) {
+    const method = originalFactory(methodName, level, loggerName);
+    return function(dateTime, logLevel, component, message, data) {
+      method(...arguments);
+      // check for signaling events that previously used to be
+      // emitted on (now deprecated) eventListener
+      // they are fired with message = `event`, and group == `signaling`
+      if (message === 'event' && data.group === 'signaling') {
+        console.log(`makarand EventListenerAPI | ${data.name}`);
+      }
+    };
+  };
+  // logger.setLevel(logLevel);
+  // logger = Twilio.Video.Logger.getLogger('twilio-video');
+  // logger.setLevel('DEBUG');
+  // const originalFactory = logger.methodFactory;
+  //     logger.methodFactory = (methodName, level, loggerName) => {
+  //       const method = originalFactory(methodName, level, loggerName);
+  //       return (datetime, logLevel, component, message, event) => {
+  //         method(datetime, logLevel, component, message, event);
+  //         // check for signaling events that previously used to be
+  //         // emitted on (now deprecated) eventListener
+  //         // they are fired with message = `event`, and group == `signaling`
+  //         if (message === 'event' && event.group === 'signaling') {
+  //           console.log(`EventListenerAPI | ${event.name}`)
+  //         }
+  //       };
+  //     };
+}
+
 /**
  *
  * @param {*} container
@@ -18,6 +50,7 @@ import { log } from '../../jsutilmodules/log.js';
  * @param {*} localTracks - array of local tracks.
  */
 export function createRoomControls({ container, Video, roomJoined, localTracks }) {
+  const urlParams = new URLSearchParams(window.location.search);
   const roomControlsDiv = createDiv(container, 'room-controls', 'room-controls');
 
   const twilioVideoVersion = createElement(roomControlsDiv, { type: 'h3', id: 'twilioVideoVersion' });
@@ -31,6 +64,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     onChange: () => log('topology change:', topologySelect.getValue())
   });
 
+  let extraConnectOptions;
   const envSelect = createSelection({
     id: 'env',
     container: roomControlsDiv,
@@ -41,9 +75,6 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
       if (newEnv === 'dev') {
         // eslint-disable-next-line no-use-before-define
         extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ wsServer: 'wss://us2.vss.dev.twilio.com/signaling' });
-      } else {
-        // eslint-disable-next-line no-use-before-define
-        extraConnectOptions.value = urlParams.get('connectOptions') || JSON.stringify({ logLevel: 'warn' });
       }
       log('env change:', newEnv);
     }
@@ -70,7 +101,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     labelClasses: ['roomNameLabel'],
   });
 
-  const extraConnectOptions = createLabeledInput({
+  extraConnectOptions = createLabeledInput({
     container: roomControlsDiv,
     labelText: 'ConnectOptions: ',
     placeHolder: 'connectOptions as json here',
@@ -88,7 +119,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
   const autoRecord = createLabeledCheckbox({ container: controlOptionsDiv, labelText: 'Record Participant', id: 'recordParticipant' });
 
   // process parameters.
-  const urlParams = new URLSearchParams(window.location.search);
+
   roomNameInput.value = urlParams.get('room') || randomRoomName();
   localIdentity.value = urlParams.get('identity') || randomName();
   const { protocol, host, pathname } = window.location;
@@ -123,6 +154,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
 
       let url = new URL(tokenUrl);
 
+      console.log('Getting Token For: ', { environment, topology, roomName, identity, recordParticipantsOnConnect });
       const tokenOptions = { environment, topology, roomName, identity, recordParticipantsOnConnect };
       url.search = new URLSearchParams(tokenOptions);
       const response = await fetch(url);
@@ -136,6 +168,7 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
 
     return { token, identity };
   }
+
 
   function joinRoom(token) {
     const roomName = roomNameInput.value;
@@ -156,7 +189,11 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     }
 
     log(`Joining room ${roomName} ${autoPublish.checked ? 'with' : 'without'} ${localTracks.length} localTracks`);
+    const loggerName = `[${localIdentity.value}]:`;
+    const logger = Video.Logger.getLogger(loggerName);
+    handleSDKLogs(logger);
     const connectOptions = Object.assign({
+      loggerName,
       tracks: autoPublish.checked ? localTracks : [],
       name: roomName,
       environment: envSelect.getValue()
@@ -164,9 +201,13 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
     // Join the Room with the token from the server and the
     // LocalParticipant's Tracks.
     log(`Joining room ${roomName} with ${JSON.stringify(connectOptions, null, 2)}`);
+
     Video.connect(token, connectOptions)
-      .then(roomJoined)
-      .catch(error => {
+      .then(room => {
+        roomJoined(room, logger);
+        // get new local identity for next join.
+        localIdentity.value = randomName();
+      }).catch(error => {
         log('Could not connect to Twilio: ' + error.message);
       });
   }
@@ -192,17 +233,19 @@ export function createRoomControls({ container, Video, roomJoined, localTracks }
       const bobToken = (await getRoomCredentials()).token;
       createButton('testPreflight', roomControlsDiv, async () => {
         console.log('starting preflight');
-        preflightTest = Video.testPreflight(aliceToken, bobToken, { duration: 10000 });
+        const environment = envSelect.getValue();
+        preflightTest = Video.testPreflight(aliceToken, bobToken, { duration: 10000, environment });
         const deferred = {};
         deferred.promise = new Promise((resolve, reject) => {
           deferred.resolve = resolve;
           deferred.reject = reject;
         });
 
+        const logger = Video.Logger.getLogger('twilio-video');
         preflightTest.on('debug', (room1, room2) => {
           console.log('preflight debug:', room1, room2);
-          roomJoined(room1);
-          roomJoined(room2);
+          roomJoined(room1, logger);
+          roomJoined(room2, logger);
         });
 
         preflightTest.on('progress', progress => {

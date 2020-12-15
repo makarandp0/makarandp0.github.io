@@ -48,6 +48,8 @@ div#main video {
 }
 
 div.room-container {
+  display: flex;
+  flex-direction: column;
   margin: 5px;
   border: solid black 2px;
 }
@@ -183,6 +185,24 @@ div.roomHeaderDiv {
   background: yellow;
 }
 
+.networkquality.networkquality_null {
+  background: gray;
+}
+
+.networkquality.networkquality_0,
+.networkquality.networkquality_1 {
+  background: red;
+}
+
+.networkquality.networkquality_2,
+.networkquality.networkquality_3 {
+  background: yellow;
+}
+
+.networkquality.networkquality_4,
+.networkquality.networkquality_5 {
+  background: lightgreen;
+}
 
 
 canvas {

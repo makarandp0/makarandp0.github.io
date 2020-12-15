@@ -4,10 +4,12 @@ import { createDiv } from '../../jsutilmodules/createDiv.js';
 import { createElement } from '../../jsutilmodules/createElement.js';
 import createLabeledStat from '../../jsutilmodules/labeledstat.js';
 import { createLink } from '../../jsutilmodules/createLink.js';
+import { createSelection } from '../../jsutilmodules/createSelection.js';
 import { getCreds } from './getCreds.js';
 import { log } from '../../jsutilmodules/log.js';
 import { renderTrack } from './renderTrack.js';
 import { updateTrackStats } from './renderLocalTrack.js';
+
 
 function renderTrackPublication(trackPublication, container, shouldAutoAttach) {
   const trackContainerId = 'trackPublication_' + trackPublication.trackSid;
@@ -135,15 +137,6 @@ async function createRoomButtons({ room, container, env }) {
 
   createLink({ container, linkText: `/v1/Rooms/${room.sid}`, linkUrl: `${baseUrl}/v1/Rooms/${room.sid}`, newTab: true });
 
-  createButton('check stats', container, () => {
-    room.getStats().then(function(value) {
-      if (value && value.length) {
-        value[0].remoteAudioTrackStats.forEach(function(track) {
-          log(`track.trackSid: ${track.trackSid} level ${track.audioLevel}`);
-        });
-      }
-    });
-  });
   // this works.
   // createButton('fetch room', roomHeaderDiv, async () => {
   //   try {
@@ -158,23 +151,43 @@ async function createRoomButtons({ room, container, env }) {
 }
 
 
-export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) {
-
-  // const baseUrlNoCredentials = env === 'prod' ? 'https://video.twilio.com' : `https://video.${env}.twilio.com`;
+export async function renderRoom({ room, container, shouldAutoAttach, env = 'prod', logger }) {
   container = createDiv(container, 'room-container');
+  console.log(logger.levels);
+  const options = Object.keys(logger.levels);
+  const currentLevel = Object.keys(logger.levels).find(key => logger.levels[key] === logger.getLevel());
+  const logLevelSelect = createSelection({
+    id: 'logLevel',
+    container,
+    options,
+    // options: ['warn', 'debug', 'info', 'error', 'silent'],
+    title: 'logLevel',
+    onChange: () => {
+      log(`setting logLevel: ${logLevelSelect.getValue()} for ${room.localParticipant.identity} in ${room.sid}`);
+      logger.setLevel(logLevelSelect.getValue());
+    }
+  });
+  logLevelSelect.setValue(currentLevel);
+
   const roomHeaderDiv = createDiv(container, 'roomHeaderDiv');
 
-  const roomSid = createElement(roomHeaderDiv, { type: 'h2', classNames: ['roomHeaderText'] });
+  const roomSid = createElement(roomHeaderDiv, { type: 'h3', classNames: ['roomHeaderText'] });
   roomSid.innerHTML = ` ${room.sid} `;
-  createRoomButtons({ env, room, container  });
+  await createRoomButtons({ env, room, container  });
   const localParticipant = createLabeledStat(container, 'localParticipant', { className: 'localParticipant', useValueToStyle: true });
   localParticipant.setText(room.localParticipant.identity);
-  const roomState = createLabeledStat(container, 'state', { className: 'roomstate', useValueToStyle: true });
-  const recording = createLabeledStat(container, 'isRecording', { className: 'recording', useValueToStyle: true });
+  const roomState = createLabeledStat(container, 'room.state', { className: 'roomstate', useValueToStyle: true });
+  const recording = createLabeledStat(container, 'room.isRecording', { className: 'recording', useValueToStyle: true });
+  const networkQuality = createLabeledStat(container, 'room.localParticipant.networkQualityLevel', { className: 'networkquality', useValueToStyle: true });
 
-
+  const updateNetworkQuality = () => {
+    console.log('room.localParticipant.networkQualityLevel: ', room.localParticipant.networkQualityLevel);
+    networkQuality.setText(room.localParticipant.networkQualityLevel);
+  };
   const updateRecordingState = () => recording.setText(room.isRecording);
   const updateRoomState = () => roomState.setText(room.state);
+
+  room.localParticipant.addListener('networkQualityLevelChanged', updateNetworkQuality);
   room.addListener('disconnected', updateRoomState);
   room.addListener('reconnected', updateRoomState);
   room.addListener('reconnecting', updateRoomState);
@@ -188,6 +201,7 @@ export function renderRoom({ room, container, shouldAutoAttach, env = 'prod' }) 
   });
   updateRoomState();
   updateRecordingState();
+  updateNetworkQuality();
 
   const isDisconnected = room.disconnected;
   const btnDisconnect = createButton('disconnect', roomHeaderDiv, () => {
