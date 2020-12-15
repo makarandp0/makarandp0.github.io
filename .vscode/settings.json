@@ -4,6 +4,7 @@
     "devtool",
     "jsutilmodules",
     "msstop",
+    "networkquality",
     "onicecandidate",
     "ontrack",
     "randomname",

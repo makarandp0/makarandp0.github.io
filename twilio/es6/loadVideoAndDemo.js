@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { demo } from './videoapidemo.js';
-const defaultSDKVersion = '2.7.2';
+const defaultSDKVersion = '2.10.0';
 
 export function loadVideoAndDemo(Video, containerDiv) {
   const urlParams = new URLSearchParams(window.location.search);
