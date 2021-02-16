@@ -1,0 +1,79 @@
+
+<p> alpha </p>
+<input id="alpha" type="checkbox" >  <br>
+
+<canvas id="rotatingWord" width="120" height="120"></canvas>
+<button id="demo">demo</button>
+<p> Canvas Stream </p>
+<video id="local_video" width="200" autoplay=true></video>
+<p> webrtc Stream </p>
+<video id="remote_video" width="200" autoplay=true></video>
+
+<script>
+function log(message) {
+  console.log(message);
+  const p = document.createElement('p');
+  p.innerText = message;;
+  document.body.appendChild(p);
+}
+
+document.getElementById('demo').onclick = main;
+
+const remote_video = document.getElementById('remote_video');
+const local_video = document.getElementById('local_video');
+
+async function canvasStream(alpha) {
+  const word = `alpha=${alpha}`;
+  const canvas  = document.getElementById("rotatingWord");
+  let ctx = canvas.getContext('2d', { alpha });
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  var wordWidth=ctx.measureText(word).width;
+  var r=0;
+  requestAnimationFrame(function animate() {
+    r+=Math.PI/180;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(r);
+    ctx.font = "10px Verdana";
+    ctx.fillText(word, -wordWidth / 2, 4);
+    ctx.restore();
+    requestAnimationFrame(animate);
+  });
+  return canvas.captureStream(10);
+}
+
+async function main() {
+  const alpha = document.getElementById("alpha").checked;
+
+  const stream  = await canvasStream(alpha);
+  local_video.srcObject = stream;
+  remote_video.srcObject = await negotiate(stream);;
+}
+
+//
+// 1) creates peer connections
+// 2) adds local stream
+// 3) negotiates connection
+// 4) returns remote stream.
+async function negotiate(localStream) {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  pc2.onicecandidate = (event) => event.candidate && pc1.addIceCandidate(event.candidate);
+  pc1.onicecandidate = (event) => event.candidate && pc2.addIceCandidate(event.candidate);
+
+  return new Promise( async (resolve) => {
+    pc1.addStream(localStream);
+    pc2.onaddstream = (event) => resolve(event.stream);
+
+    const offer = await pc1.createOffer();
+    pc1.setLocalDescription(offer);
+    pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    pc2.setLocalDescription(answer);
+    pc1.setRemoteDescription(answer);
+  });
+}
+
+</script>
