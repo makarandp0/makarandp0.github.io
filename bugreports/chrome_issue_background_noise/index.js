@@ -57,6 +57,7 @@ export function createLabeledInput(container, labelText) {
   container.appendChild(identityLabel);
 
   const inputElement = document.createElement('input');
+  inputElement.disabled = true;
   container.appendChild(inputElement);
   return inputElement;
 }
