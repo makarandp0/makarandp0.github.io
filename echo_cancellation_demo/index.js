@@ -68,9 +68,10 @@ function textAreaAdjust(element) {
   element.style.height = (25 + element.scrollHeight) + 'px';
 }
 
-export function main() {
-  let demoCleanup = null;
-  const audioTrackSettings = document.getElementById('audioTrackSettings');
+export function main(root) {
+  const audioSettingsFieldset = createFieldSet(root, 'Audio Track Settings');
+  const audioTrackSettings = document.createElement('textarea');
+  audioSettingsFieldset.appendChild(audioTrackSettings);
   const defaultAudioTrackSettings = {
     "autoGainControl": false,
     "channelCount": 1,
@@ -82,16 +83,15 @@ export function main() {
   const urlParams = new URLSearchParams(window.location.search);
   audioTrackSettings.value = urlParams.get('audioTrackSettings') || JSON.stringify(defaultAudioTrackSettings, null, 4);
   textAreaAdjust(audioTrackSettings);
-  document.getElementById('demo').onclick = async () => {
-    try {
 
+  let demoCleanup = null;
+  document.createElement('button');
+  createButton(root, 'demo', async () => {
+    try {
       if (demoCleanup) {
         demoCleanup();
         demoCleanup = null;
       }
-
-      const root = document.getElementById('root');
-      // const remoteAudioElement = document.getElementById('remote_audio');
 
       log('Step 1: get GUM stream');
       let audio = JSON.parse(audioTrackSettings.value);
@@ -99,7 +99,7 @@ export function main() {
 
       const localAudioTrack = userMediaStream.getAudioTracks()[0];
       console.log('Track Settings: ', localAudioTrack.getSettings());
-      console.log('Track Capabilities: ', localAudioTrack.getCapabilities());
+      console.log('Track Capabilities: ', localAudioTrack.getCapabilities && localAudioTrack.getCapabilities());
       const localRender = renderAudioTrack(localAudioTrack);
       localRender.canvas.style.background = 'lightgreen';
 
@@ -111,8 +111,6 @@ export function main() {
 
       log('Step 2: Negotiate and Get Remote Stream');
       const { remoteStream, remoteTrack, remotePC, localPC } = await negotiate(localAudioTrack);
-      // remoteAudioElement.srcObject = remoteStream;
-      // remoteAudioElement.onplay = () => console.log('playing');
       const remoteRender = renderAudioTrack(remoteTrack);
       remoteRender.canvas.style.background = 'lightyellow';
 
@@ -137,6 +135,7 @@ export function main() {
         remoteAudioLevelInput.value = remoteAudioLevel;
         console.log({ remoteAudioLevel,  localAudioLevel });
       }, 2000);
+
       demoCleanup = () => {
         remoteRender.stop();
         localRender.stop();
@@ -149,5 +148,5 @@ export function main() {
       log('Error: ' + ex);
       throw ex;
     }
-  };
+  });
 }
