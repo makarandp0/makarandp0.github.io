@@ -1,15 +1,15 @@
 
-<h4>Chrome <a href="https://github.com/makarandp0/makarandp0.github.io/tree/master/echo_cancellation_demo">source</a>: echo cancellation demo.</h4>
-<label> Echo Cancel ? </label>
-<input id="enableEchoCancellation" type="checkbox">  <br>
+<h4><a href="https://github.com/makarandp0/makarandp0.github.io/tree/master/echo_cancellation_demo">source</a> <a href="https://makarandp0.github.io/echo_cancellation_demo/index.html">live</a>: audio track settings demo.</h4>
+<fieldset>
+  <legend>Audio Track Settings:</legend>
+  <textarea id="audioTrackSettings" type="textarea">{}</textarea>  <br>
+</fieldset>
 <button id="demo">Start Demo</button>
-<br>
-<audio id="remote_audio" width="200" autoplay=true controls=true></audio>
 <br>
 <div id="root"></div>
 <script type="module">
   import { main } from './index.js'
   main(document.getElementById('root'));
 </script>
-<a href="https://makarandp0.github.io/echo_cancellation_demo/index.html">live demo</a>
+
 

@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 /* eslint-disable no-console */
 /* eslint-disable camelcase */
 import { negotiate } from './negotiate.js';
@@ -62,60 +63,91 @@ export function createLabeledInput(container, labelText) {
   return inputElement;
 }
 
+function textAreaAdjust(element) {
+  element.style.width = '400px';
+  element.style.height = (25 + element.scrollHeight) + 'px';
+}
+
 export function main() {
   let demoCleanup = null;
+  const audioTrackSettings = document.getElementById('audioTrackSettings');
+  const defaultAudioTrackSettings = {
+    "autoGainControl": false,
+    "channelCount": 1,
+    "echoCancellation": true,
+    "noiseSuppression": false,
+    "sampleRate": 48000,
+    "sampleSize": 16
+  };
+  const urlParams = new URLSearchParams(window.location.search);
+  audioTrackSettings.value = urlParams.get('audioTrackSettings') || JSON.stringify(defaultAudioTrackSettings, null, 4);
+  textAreaAdjust(audioTrackSettings);
   document.getElementById('demo').onclick = async () => {
-    if (demoCleanup) {
-      demoCleanup();
-      demoCleanup = null;
+    try {
+
+      if (demoCleanup) {
+        demoCleanup();
+        demoCleanup = null;
+      }
+
+      const root = document.getElementById('root');
+      // const remoteAudioElement = document.getElementById('remote_audio');
+
+      log('Step 1: get GUM stream');
+      let audio = JSON.parse(audioTrackSettings.value);
+      const userMediaStream  = await navigator.mediaDevices.getUserMedia({ audio, video: false });
+
+      const localAudioTrack = userMediaStream.getAudioTracks()[0];
+      console.log('Track Settings: ', localAudioTrack.getSettings());
+      console.log('Track Capabilities: ', localAudioTrack.getCapabilities());
+      const localRender = renderAudioTrack(localAudioTrack);
+      localRender.canvas.style.background = 'lightgreen';
+
+      // local audio
+      const localAudioFieldSet = createFieldSet(root, 'Local Audio');
+      const localAudioLevelInput = createLabeledInput(localAudioFieldSet, 'Audio Level: ');
+      localAudioFieldSet.appendChild(localRender.canvas);
+
+
+      log('Step 2: Negotiate and Get Remote Stream');
+      const { remoteStream, remoteTrack, remotePC, localPC } = await negotiate(localAudioTrack);
+      // remoteAudioElement.srcObject = remoteStream;
+      // remoteAudioElement.onplay = () => console.log('playing');
+      const remoteRender = renderAudioTrack(remoteTrack);
+      remoteRender.canvas.style.background = 'lightyellow';
+
+      // remote audio
+      const remoteAudioFieldSet = createFieldSet(root, 'Remote Audio');
+
+      const remoteAudioElement = document.createElement('audio');
+      remoteAudioElement.srcObject = remoteStream;
+      remoteAudioElement.controls = true;
+      remoteAudioElement.autoplay = true;
+
+      remoteAudioElement.onplay = () => console.log('playing');
+      remoteAudioFieldSet.appendChild(remoteAudioElement);
+      const remoteAudioLevelInput = createLabeledInput(remoteAudioFieldSet, 'Audio Level: ');
+      remoteAudioFieldSet.appendChild(remoteRender.canvas);
+
+      log('Step 3: observer Remote Audio Level');
+      setInterval(async () => {
+        const remoteAudioLevel = await getRemoteAudioLevel(remotePC);
+        const localAudioLevel =  await getLocalAudioLevel(localPC);
+        localAudioLevelInput.value = localAudioLevel;
+        remoteAudioLevelInput.value = remoteAudioLevel;
+        console.log({ remoteAudioLevel,  localAudioLevel });
+      }, 2000);
+      demoCleanup = () => {
+        remoteRender.stop();
+        localRender.stop();
+        localAudioTrack.stop();
+        remoteTrack.stop();
+        localAudioFieldSet.remove();
+        remoteAudioFieldSet.remove();
+      };
+    } catch (ex) {
+      log('Error: ' + ex);
+      throw ex;
     }
-
-    const root = document.getElementById('root');
-    const remoteAudioElement = document.getElementById('remote_audio');
-    const echoCancellation = document.getElementById('enableEchoCancellation').checked;
-
-    log('Step 1: get GUM stream');
-    const userMediaStream  = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation }, video: false });
-
-    const localAudioTrack = userMediaStream.getAudioTracks()[0];
-    console.log('Track Settings: ', localAudioTrack.getSettings());
-    console.log('Track Capabilities: ', localAudioTrack.getCapabilities());
-    const localRender = renderAudioTrack(localAudioTrack);
-    localRender.canvas.style.background = 'lightgreen';
-
-    // local audio
-    const localAudioFieldSet = createFieldSet(root, 'Local Audio');
-    const localAudioLevelInput = createLabeledInput(localAudioFieldSet, 'Audio Level: ');
-    localAudioFieldSet.appendChild(localRender.canvas);
-
-
-    log('Step 2: Negotiate and Get Remote Stream');
-    const { remoteStream, remoteTrack, remotePC, localPC } = await negotiate(localAudioTrack);
-    remoteAudioElement.srcObject = remoteStream;
-    remoteAudioElement.onplay = () => console.log('playing');
-    const remoteRender = renderAudioTrack(remoteTrack);
-    remoteRender.canvas.style.background = 'lightyellow';
-
-    // remote audio
-    const remoteAudioFieldSet = createFieldSet(root, 'Remote Audio');
-    const remoteAudioLevelInput = createLabeledInput(remoteAudioFieldSet, 'Audio Level: ');
-    remoteAudioFieldSet.appendChild(remoteRender.canvas);
-
-    log('Step 3: observer Remote Audio Level');
-    setInterval(async () => {
-      const remoteAudioLevel = await getRemoteAudioLevel(remotePC);
-      const localAudioLevel =  await getLocalAudioLevel(localPC);
-      localAudioLevelInput.value = localAudioLevel;
-      remoteAudioLevelInput.value = remoteAudioLevel;
-      console.log({ remoteAudioLevel,  localAudioLevel });
-    }, 2000);
-    demoCleanup = () => {
-      remoteRender.stop();
-      localRender.stop();
-      localAudioTrack.stop();
-      remoteTrack.stop();
-      localAudioFieldSet.remove();
-      remoteAudioFieldSet.remove();
-    };
   };
 }
