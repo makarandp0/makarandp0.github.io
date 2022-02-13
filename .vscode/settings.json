@@ -13,5 +13,8 @@
     "videoapidemo",
     "videoinput",
     "visibilitychange"
-  ]
+  ],
+  "files.watcherExclude": {
+    "**/target": true
+  }
 }
