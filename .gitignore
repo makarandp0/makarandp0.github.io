@@ -9,3 +9,5 @@ twilio/app/dist/admin.js
 twilio/app/dist/app.js
 twilio/app/dist/foo.js
 twilio/app/dist/tokens.js
+elasticsearch/main.js
+elasticsearch/utils.js
