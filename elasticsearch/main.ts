@@ -1,5 +1,5 @@
 import esb from 'elastic-builder/src';
-import { executeQuery, getObjectKeys, makeQueryBody, QUERY_PARAMETERS } from './utils';
+import { executeQuery, generateAndExecuteQuery, getObjectKeys, makeQueryBody, QUERY_PARAMETERS } from './utils';
 import { AggregationsMultiBucketBase, AggregationsTermsAggregateBase } from '@elastic/elasticsearch/api/types';
 
 const timeRange = ['2022-02-08T20:00:43.599Z', '2022-02-11T22:00:43.599Z'];
@@ -10,18 +10,18 @@ const HONORLOCK_ACCOUNT_SID = 'ACf469d11902f69e0ce2b9dba56d3415e7';
 const room_sids = [
   'RM8473d9b14724bf9fedfc407ffc1507e1',
   'RM59076307d384f4b3e26e47cd8929e81a',
-  'RM8fe9dea3787bbebdeff01674e38b3605',
-  'RMb2b74fee64826c621d85fc3d3222ffd1',
-  'RMc3d4a383700a37771709a05dd9442bad',
-  'RM350760a307812f3a89f2830e41907b06',
-  'RM9ae8214c4f69cd1d3c0e8598a3effd97',
-  'RMde1f4a5708ba76e9f9e63322cb22a6e0',
-  'RM0506d4af0474beeb8d2baab8b8791fd3',
-  'RM0914c9a8de7ec50332998a8c83e963d9',
-  'RMfd89351ba1498bc45fb60c5e7360fb3d',
-  'RM1a07d6625b7312d5e3b468b0815d7bda',
-  'RM872f6410d53e42ec32ea67fe2b0bcd81',
-  'RMac256ca51c0a892f4df0c0533ad048e9',
+  // 'RM8fe9dea3787bbebdeff01674e38b3605',
+  // 'RMb2b74fee64826c621d85fc3d3222ffd1',
+  // 'RMc3d4a383700a37771709a05dd9442bad',
+  // 'RM350760a307812f3a89f2830e41907b06',
+  // 'RM9ae8214c4f69cd1d3c0e8598a3effd97',
+  // 'RMde1f4a5708ba76e9f9e63322cb22a6e0',
+  // 'RM0506d4af0474beeb8d2baab8b8791fd3',
+  // 'RM0914c9a8de7ec50332998a8c83e963d9',
+  // 'RMfd89351ba1498bc45fb60c5e7360fb3d',
+  // 'RM1a07d6625b7312d5e3b468b0815d7bda',
+  // 'RM872f6410d53e42ec32ea67fe2b0bcd81',
+  // 'RMac256ca51c0a892f4df0c0533ad048e9',
 ];
 
 export const VMSIceConnectionStates = {
@@ -36,13 +36,13 @@ export const VMSIceConnectionStates = {
 export async function getIceStatesFromVMS(timeRange: string[]) {
   // const timeRange = ['2022-02-09T20:00:43.599Z', '2022-02-09T22:00:43.599Z'];
   const vmsQueryParams: QUERY_PARAMETERS = {
-    mustEqual: new Map([
-      ['name', 'ice_state_changed']
+    filters: new Map<string, string|string[]>([
+      ['name', 'ice_state_changed'],
+      ['payload.room_sid', room_sids]
     ]),
-    mustRange: new Map([
+    range: new Map([
       ['timestamp', timeRange]
     ]),
-    shouldEqualOneOf: new Map([['payload.room_sid', room_sids]]),
     returnFields: getObjectKeys(VMSIceConnectionStates)
   };
 
@@ -68,14 +68,14 @@ export const VMSTrackRecordingStates = {
 export async function getTrackSIDSfromVMS(timeRange: string[]) {
   // const timeRange = ['2022-02-09T20:00:43.599Z', '2022-02-09T22:00:43.599Z'];
   const vmsQueryParams: QUERY_PARAMETERS = {
-    mustEqual: new Map([
+    filters: new Map<string,string|string[]>([
       ["group", 'recording'],
-      ['name', 'terminated']
+      ['name', 'terminated'],
+      ['payload.room_sid', room_sids]
     ]),
-    mustRange: new Map([
+    range: new Map([
       ['timestamp', timeRange]
     ]),
-    shouldEqualOneOf: new Map([['payload.room_sid', room_sids]]),
     returnFields: getObjectKeys(VMSTrackRecordingStates)
   };
 
@@ -111,13 +111,13 @@ export const RoomParticipantSample = {
 export async function getRoomParticipantInfo() {
   // const timeRange = ['2022-02-09T20:00:43.599Z', '2022-02-09T22:00:43.599Z'];
   const roomQueryParams: QUERY_PARAMETERS = {
-    // mustEqual: new Map([
-    //   ["name", 'connected']
-    // ]),
-    mustRange: new Map([
+    filters: new Map([
+      ['payload.room_sid', room_sids],
+      ['name', ['connected', 'disconnected', 'disconnect']]
+    ]),
+    range: new Map([
       ['timestamp', timeRange]
     ]),
-    shouldEqualOneOf: new Map([['payload.room_sid', room_sids], ['name', ['connected', 'disconnected', 'disconnect']]]),
     returnFields: getObjectKeys(RoomParticipantSample)
   };
 
@@ -145,13 +145,13 @@ export const RoomErrorsSample = {
 // connected later.
 export async function getRoomErrors() {
   const roomQueryParams: QUERY_PARAMETERS = {
-    mustEqual: new Map([
-      ["name", 'error']
+    filters: new Map<string, string|string[]>([
+      ["name", 'error'],
+      ['payload.room_sid', room_sids]
     ]),
-    mustRange: new Map([
+    range: new Map([
       ['timestamp', timeRange]
     ]),
-    shouldEqualOneOf: new Map([['payload.room_sid', room_sids]]),
     returnFields: getObjectKeys(RoomErrorsSample)
   };
 
@@ -163,6 +163,30 @@ export async function getRoomErrors() {
   return { statusCode, results: hits.hits };
 }
 
+export const DTLSErrorsSample = {
+  name: "",
+  payload: {
+    state: "",
+    room_sid: "",
+    participant_sid: "",
+    message: "",
+  }
+}
+
+async function getDTLSErrors() {
+  //  dtls_connection
+  const { statusCode, results } = await generateAndExecuteQuery<typeof DTLSErrorsSample>('video-vms-reports-*', DTLSErrorsSample, {
+      filters: new Map<string, string|string[]>([
+        ["name", 'dtls_connection'],
+        ['payload.state', 'CONNECTION_ERROR'],
+        ['payload.room_sid', room_sids]
+      ]),
+      range: new Map([
+        ['timestamp', timeRange]
+      ])
+  });
+  return { statusCode, results };
+}
 
 async function main() {
 
@@ -299,16 +323,15 @@ async function main() {
       esb.sumAggregation('total_packets_received', 'payload.packets_received')
   ]).size(trackSids.length);
 
-  const clientQueryParams = {
-    mustEqual: new Map([
-      ["group", 'quality'], ['name', 'stats-report']
-    ]),
-    mustRange: new Map([
-      ['server_timestamp', timeRange]
-    ]),
-    shouldEqualOneOf: new Map([
+  const clientQueryParams: QUERY_PARAMETERS = {
+    filters: new Map<string, string|string[]>([
+      ["group", 'quality'],
+      ['name', 'stats-report'],
       ['payload.track_sid', trackSids],
       ['payload.track_type', ['localAudioTrack', 'localVideoTrack']]
+    ]),
+    range: new Map([
+      ['server_timestamp', timeRange]
     ]),
     aggs: [agg],
     returnFields:  ["group", "name", "payload.state", "payload.track_sid", "payload.packets_sent", "payload.packets_lost", "payload.track_type"],
@@ -385,4 +408,13 @@ async function main() {
     });
   }));
 }
-main();
+async function main2() {
+  const { statusCode, results }  = await getDTLSErrors();
+  results.forEach(v => {
+    if (v._source) {
+      console.log(v._source);
+    }
+  })
+}
+main()
+

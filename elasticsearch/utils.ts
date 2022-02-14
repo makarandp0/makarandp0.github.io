@@ -7,39 +7,35 @@ const client: NewTypes = new Client({ node: 'http://localhost:29200/video' })
 import esb from 'elastic-builder/src';
 
 export type QUERY_PARAMETERS = {
-  mustEqual?: Map<string, string>;
-  mustRange?: Map<string, string[]>;
-  shouldEqualOneOf?: Map<string, string[]>;
+  filters?: Map<string, string|string[]>;
+  range?: Map<string, string[]>;
   returnFields?: string[];
   aggs? : esb.Aggregation[];
 };
 
-// const mustEqual = { "group": 'recording', 'name': 'terminated'};
+// const mustEqual = { "group": 'recording', 'name': 'terminated', 'payload.state': ['ABSENT_NO_MEDIA', 'MEDIA_GAP']};
 // const mustRange = { timestamp: ['2022-02-09T21:48:43.599Z', '2022-02-09T22:18:43.599Z'] };
-// const shouldEqualOneOf = { 'payload.state': ['ABSENT_NO_MEDIA', 'MEDIA_GAP'] };
 // const returnFields = ["group", "name", "payload.state", "payload.track_sid"];
-export function makeQueryBody({ mustEqual = new Map(), mustRange = new Map(), shouldEqualOneOf = new Map(), returnFields = [], aggs } : QUERY_PARAMETERS ): esb.RequestBodySearch {
+export function   makeQueryBody({ filters = new Map(), range = new Map(), returnFields = [], aggs } : QUERY_PARAMETERS ): esb.RequestBodySearch {
   const must: esb.Query[] = [];
-  mustEqual.forEach((v, k) => {
-    must.push(esb.matchQuery(k, v));
-  });
-
-  mustRange.forEach((v, k) => {
-    must.push(esb.rangeQuery(k).gte(v[0]).lt(v[1]));
-  });
-
   const boolQueries = [
     esb.boolQuery().must(must)
   ];
 
-  shouldEqualOneOf.forEach((values,k) => {
-    const oneOf: esb.MatchQuery[] = [];
-    values.forEach(val => {
-      oneOf.push(esb.matchQuery(k, val));
-    });
-    boolQueries.push(
-      esb.boolQuery().minimumShouldMatch(1).should(oneOf)
-    );
+  filters.forEach((v, k) => {
+    if (Array.isArray(v)) {
+      const oneOf: esb.MatchQuery[] = [];
+      v.forEach(val => {
+        oneOf.push(esb.matchQuery(k, val));
+      });
+      boolQueries.push(esb.boolQuery().minimumShouldMatch(1).should(oneOf));
+    } else {
+      must.push(esb.matchQuery(k, v));
+    }
+  });
+
+  range.forEach((v, k) => {
+    must.push(esb.rangeQuery(k).gte(v[0]).lt(v[1]));
   });
 
   const requestBody = esb.requestBodySearch().query(
@@ -68,6 +64,16 @@ export async function executeQuery<T>(body: esb.RequestBodySearch, index: string
   return { took, hits, statusCode, result };
 }
 
+type QUERY_PARAMETERS_SIMPLE = Omit<QUERY_PARAMETERS, "returnFields">;
+export async function generateAndExecuteQuery<T>(index: string, sample: T, queryParameters: QUERY_PARAMETERS_SIMPLE ) {
+  const queryBody = makeQueryBody(queryParameters);
+  console.log('QueryBody:', queryBody.toJSON());
+  queryBody.source(getObjectKeys(sample));
+  queryBody.from(0);
+  queryBody.size(5);
+  const { statusCode, hits, took } = await executeQuery<T>(queryBody, index);
+  return { statusCode, results: hits.hits };
+}
 
 // given an object, converts its to an array of keys acceptable for returnFields.
 // @param sourceObject ={ group: "",  name: "", payload: { state: "" }
