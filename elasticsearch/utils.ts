@@ -18,6 +18,13 @@ export type QUERY_PARAMETERS = {
 // const returnFields = ["group", "name", "payload.state", "payload.track_sid"];
 export function   makeQueryBody({ filters = new Map(), range = new Map(), returnFields = [], aggs } : QUERY_PARAMETERS ): esb.RequestBodySearch {
   const must: esb.Query[] = [];
+
+  filters.forEach((v, k) => {
+    if (!Array.isArray(v)) {
+      must.push(esb.matchQuery(k, v));
+    }
+  });
+
   const boolQueries = [
     esb.boolQuery().must(must)
   ];
@@ -29,8 +36,6 @@ export function   makeQueryBody({ filters = new Map(), range = new Map(), return
         oneOf.push(esb.matchQuery(k, val));
       });
       boolQueries.push(esb.boolQuery().minimumShouldMatch(1).should(oneOf));
-    } else {
-      must.push(esb.matchQuery(k, v));
     }
   });
 
@@ -65,14 +70,22 @@ export async function executeQuery<T>(body: esb.RequestBodySearch, index: string
 }
 
 type QUERY_PARAMETERS_SIMPLE = Omit<QUERY_PARAMETERS, "returnFields">;
-export async function generateAndExecuteQuery<T>(index: string, sample: T, queryParameters: QUERY_PARAMETERS_SIMPLE ) {
+export async function generateAndExecuteQuery<T>({ index, sample, queryParameters, aggs } : {
+  index: string, sample: T, queryParameters: QUERY_PARAMETERS_SIMPLE, aggs?: esb.Aggregation[]} ) {
   const queryBody = makeQueryBody(queryParameters);
-  console.log('QueryBody:', queryBody.toJSON());
   queryBody.source(getObjectKeys(sample));
-  queryBody.from(0);
-  queryBody.size(5);
-  const { statusCode, hits, took } = await executeQuery<T>(queryBody, index);
-  return { statusCode, results: hits.hits };
+  if (aggs) {
+    queryBody.aggs(aggs);
+    // when getting aggregated results, dont get actual results.
+    queryBody.size(0);
+  } else {
+    queryBody.from(0);
+    queryBody.size(1000);
+  }
+
+  const { statusCode, hits, took, result } = await executeQuery<T>(queryBody, index);
+
+  return { statusCode, results: hits.hits, aggregations: result?.body?.aggregations };
 }
 
 // given an object, converts its to an array of keys acceptable for returnFields.

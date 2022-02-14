@@ -4,57 +4,52 @@ import { AggregationsMultiBucketBase, AggregationsTermsAggregateBase } from '@el
 
 const timeRange = ['2022-02-08T20:00:43.599Z', '2022-02-11T22:00:43.599Z'];
 
-
-
 const HONORLOCK_ACCOUNT_SID = 'ACf469d11902f69e0ce2b9dba56d3415e7';
 const room_sids = [
   'RM8473d9b14724bf9fedfc407ffc1507e1',
   'RM59076307d384f4b3e26e47cd8929e81a',
-  // 'RM8fe9dea3787bbebdeff01674e38b3605',
-  // 'RMb2b74fee64826c621d85fc3d3222ffd1',
-  // 'RMc3d4a383700a37771709a05dd9442bad',
-  // 'RM350760a307812f3a89f2830e41907b06',
-  // 'RM9ae8214c4f69cd1d3c0e8598a3effd97',
-  // 'RMde1f4a5708ba76e9f9e63322cb22a6e0',
-  // 'RM0506d4af0474beeb8d2baab8b8791fd3',
-  // 'RM0914c9a8de7ec50332998a8c83e963d9',
-  // 'RMfd89351ba1498bc45fb60c5e7360fb3d',
-  // 'RM1a07d6625b7312d5e3b468b0815d7bda',
-  // 'RM872f6410d53e42ec32ea67fe2b0bcd81',
-  // 'RMac256ca51c0a892f4df0c0533ad048e9',
+  'RM8fe9dea3787bbebdeff01674e38b3605',
+  'RMb2b74fee64826c621d85fc3d3222ffd1',
+  'RMc3d4a383700a37771709a05dd9442bad',
+  'RM350760a307812f3a89f2830e41907b06',
+  'RM9ae8214c4f69cd1d3c0e8598a3effd97',
+  'RMde1f4a5708ba76e9f9e63322cb22a6e0',
+  'RM0506d4af0474beeb8d2baab8b8791fd3',
+  'RM0914c9a8de7ec50332998a8c83e963d9',
+  'RMfd89351ba1498bc45fb60c5e7360fb3d',
+  'RM1a07d6625b7312d5e3b468b0815d7bda',
+  'RM872f6410d53e42ec32ea67fe2b0bcd81',
+  'RMac256ca51c0a892f4df0c0533ad048e9',
 ];
 
-export const VMSIceConnectionStates = {
-  timestamp: "2022-02-11 21:38:28.342+00:00-sample",
-  payload: {
-    ice_state: "",
-    room_sid: "",
-    participant_sid: "",
-  }
-};
 
 export async function getIceStatesFromVMS(timeRange: string[]) {
-  // const timeRange = ['2022-02-09T20:00:43.599Z', '2022-02-09T22:00:43.599Z'];
-  const vmsQueryParams: QUERY_PARAMETERS = {
+  const VMSIceConnectionStates = {
+    timestamp: "2022-02-11 21:38:28.342+00:00-sample",
+    payload: {
+      ice_state: "",
+      room_sid: "",
+      participant_sid: "",
+    }
+  };
+
+  const { statusCode, results } = await generateAndExecuteQuery<typeof VMSIceConnectionStates>({
+    index: 'video-vms-reports-*',
+    sample: VMSIceConnectionStates,
+    queryParameters: {
     filters: new Map<string, string|string[]>([
       ['name', 'ice_state_changed'],
       ['payload.room_sid', room_sids]
     ]),
     range: new Map([
       ['timestamp', timeRange]
-    ]),
-    returnFields: getObjectKeys(VMSIceConnectionStates)
-  };
-
-  const queryBody = makeQueryBody(vmsQueryParams);
-  queryBody.from(0);
-  queryBody.size(1000);
-
-  const { statusCode, hits, took } = await executeQuery<typeof VMSIceConnectionStates>(queryBody, 'video-vms-reports-*');
-  return { statusCode, results: hits.hits };
+    ])
+    }
+  });
+  return { statusCode, results };
 }
 
-export const VMSTrackRecordingStates = {
+const VMSTrackRecordingStates = {
   group: "",
   name: "",
   payload: {
@@ -65,29 +60,26 @@ export const VMSTrackRecordingStates = {
     participant_sid: "",
   }
 };
+
 export async function getTrackSIDSfromVMS(timeRange: string[]) {
-  // const timeRange = ['2022-02-09T20:00:43.599Z', '2022-02-09T22:00:43.599Z'];
-  const vmsQueryParams: QUERY_PARAMETERS = {
-    filters: new Map<string,string|string[]>([
-      ["group", 'recording'],
-      ['name', 'terminated'],
-      ['payload.room_sid', room_sids]
-    ]),
-    range: new Map([
-      ['timestamp', timeRange]
-    ]),
-    returnFields: getObjectKeys(VMSTrackRecordingStates)
-  };
-
-  const queryBody = makeQueryBody(vmsQueryParams);
-  queryBody.from(0);
-  queryBody.size(1000);
-
-  const { statusCode, hits, took } = await executeQuery<typeof VMSTrackRecordingStates>(queryBody, 'video-vms-reports-*');
-  return { statusCode, results: hits.hits };
+  const { statusCode, results } = await generateAndExecuteQuery<typeof VMSTrackRecordingStates>({
+    index: 'video-vms-reports-*',
+    sample: VMSTrackRecordingStates,
+    queryParameters:{
+      filters: new Map<string,string|string[]>([
+        ["group", 'recording'],
+        ['name', 'terminated'],
+        ['payload.room_sid', room_sids]
+      ]),
+      range: new Map([
+        ['timestamp', timeRange]
+      ])
+    }
+  });
+  return { statusCode, results };
 }
 
-export const RoomParticipantSample = {
+const RoomParticipantSample = {
   name: "sample_name",
   timestamp: "2022-02-11 21:38:28.342+00:00-sample",
   payload: {
@@ -107,75 +99,69 @@ export const RoomParticipantSample = {
     }
   }
 }
-
 export async function getRoomParticipantInfo() {
-  // const timeRange = ['2022-02-09T20:00:43.599Z', '2022-02-09T22:00:43.599Z'];
-  const roomQueryParams: QUERY_PARAMETERS = {
-    filters: new Map([
-      ['payload.room_sid', room_sids],
-      ['name', ['connected', 'disconnected', 'disconnect']]
-    ]),
-    range: new Map([
-      ['timestamp', timeRange]
-    ]),
-    returnFields: getObjectKeys(RoomParticipantSample)
-  };
-
-  const queryBody = makeQueryBody(roomQueryParams);
-  queryBody.from(0);
-  queryBody.size(1000);
-
-  const { statusCode, hits, took } = await executeQuery<typeof RoomParticipantSample>(queryBody, 'sdki-rooms-*');
-  return { statusCode, results: hits.hits };
-}
-
-export const RoomErrorsSample = {
-  payload: {
-    room_sid: "",
-    timestamp: "2022-02-11 21:38:28.342+00:00-sample",
-    room_name: "foo-sample",
-    room_type: "group-sample",
-    room_protocol_message: "rsp message-sample",
-    error_code: 0,
-    error_message: "",
-    participant_sid: "",
-  }
+  const { statusCode, results } = await generateAndExecuteQuery<typeof RoomParticipantSample>({
+    index: 'sdki-rooms-*',
+    sample: RoomParticipantSample,
+    queryParameters: {
+      filters: new Map([
+        ['payload.room_sid', room_sids],
+        ['name', ['connected', 'disconnected', 'disconnect']]
+      ]),
+      range: new Map([
+        ['timestamp', timeRange]
+      ]),
+    }
+  });
+  return { statusCode, results };
 }
 
 // connected later.
 export async function getRoomErrors() {
-  const roomQueryParams: QUERY_PARAMETERS = {
-    filters: new Map<string, string|string[]>([
+  const RoomErrorsSample = {
+    payload: {
+      room_sid: "",
+      timestamp: "2022-02-11 21:38:28.342+00:00-sample",
+      room_name: "foo-sample",
+      room_type: "group-sample",
+      room_protocol_message: "rsp message-sample",
+      error_code: 0,
+      error_message: "",
+      participant_sid: "",
+    }
+  }
+  const { statusCode, results } = await generateAndExecuteQuery<typeof RoomErrorsSample>({
+    index: 'sdki-rooms-*',
+    sample: RoomErrorsSample,
+    queryParameters: {
+      filters: new Map<string, string|string[]>([
       ["name", 'error'],
       ['payload.room_sid', room_sids]
-    ]),
-    range: new Map([
-      ['timestamp', timeRange]
-    ]),
-    returnFields: getObjectKeys(RoomErrorsSample)
-  };
-
-  const queryBody = makeQueryBody(roomQueryParams);
-  queryBody.from(0);
-  queryBody.size(1000);
-
-  const { statusCode, hits, took } = await executeQuery<typeof RoomErrorsSample>(queryBody, 'sdki-rooms-*');
-  return { statusCode, results: hits.hits };
+      ]),
+      range: new Map([
+        ['timestamp', timeRange]
+      ])
+    }
+  });
+  return { statusCode, results };
 }
 
-export const DTLSErrorsSample = {
-  name: "",
-  payload: {
-    state: "",
-    room_sid: "",
-    participant_sid: "",
-    message: "",
-  }
-}
 
 async function getDTLSErrors() {
   //  dtls_connection
-  const { statusCode, results } = await generateAndExecuteQuery<typeof DTLSErrorsSample>('video-vms-reports-*', DTLSErrorsSample, {
+  const DTLSErrorsSample = {
+    name: "",
+    payload: {
+      state: "",
+      room_sid: "",
+      participant_sid: "",
+      message: "",
+    }
+  }
+  const { statusCode, results } = await generateAndExecuteQuery<typeof DTLSErrorsSample>({
+    index: 'video-vms-reports-*',
+    sample: DTLSErrorsSample,
+    queryParameters: {
       filters: new Map<string, string|string[]>([
         ["name", 'dtls_connection'],
         ['payload.state', 'CONNECTION_ERROR'],
@@ -184,7 +170,7 @@ async function getDTLSErrors() {
       range: new Map([
         ['timestamp', timeRange]
       ])
-  });
+  }});
   return { statusCode, results };
 }
 
@@ -205,6 +191,7 @@ async function main() {
     publisher?: typeof RoomParticipantSample.payload.publisher;
     errors: IParticipantError[];
     iceStateMap: Map<Date, string>,
+    dtlsErrors: string[],
   };
 
   interface IRoomInfo {
@@ -248,6 +235,7 @@ async function main() {
         errors: [],
         tracks: new Map(),
         iceStateMap: new Map(),
+        dtlsErrors: []
       };
       roomEntry.participants.set(participant_sid, pEntry);
     }
@@ -296,6 +284,16 @@ async function main() {
     }
   });
 
+  const dtlsErrors = await getDTLSErrors();
+  dtlsErrors.results.forEach(p => {
+    if (p._source) {
+      const info = p._source;
+      let entry: IParticipantInfo = getParticipant(info.payload.room_sid, info.payload.participant_sid);
+      entry.dtlsErrors.push(info.payload.message)
+    }
+  })
+
+
   const vmsRecordingStates = await getTrackSIDSfromVMS(timeRange);
   vmsRecordingStates.results.forEach(t => {
     if (t._source) {
@@ -323,28 +321,23 @@ async function main() {
       esb.sumAggregation('total_packets_received', 'payload.packets_received')
   ]).size(trackSids.length);
 
-  const clientQueryParams: QUERY_PARAMETERS = {
-    filters: new Map<string, string|string[]>([
-      ["group", 'quality'],
-      ['name', 'stats-report'],
-      ['payload.track_sid', trackSids],
-      ['payload.track_type', ['localAudioTrack', 'localVideoTrack']]
-    ]),
-    range: new Map([
-      ['server_timestamp', timeRange]
-    ]),
-    aggs: [agg],
-    returnFields:  ["group", "name", "payload.state", "payload.track_sid", "payload.packets_sent", "payload.packets_lost", "payload.track_type"],
-  };
+  const { aggregations: aggregationResults } = await generateAndExecuteQuery({
+    index: 'video-insights-*',
+    sample: {},
+    queryParameters: {
+      filters: new Map<string, string|string[]>([
+        ["group", 'quality'],
+        ['name', 'stats-report'],
+        ['payload.track_sid', trackSids],
+        ['payload.track_type', ['localAudioTrack', 'localVideoTrack']]
+      ]),
+      range: new Map([
+        ['server_timestamp', timeRange]
+      ])
+    },
+    aggs: [agg]
+  });
 
-  const queryBody = makeQueryBody(clientQueryParams);
-  queryBody.size(0);
-  const { statusCode, hits, took, result } = await executeQuery(
-    queryBody,
-    'video-insights-*'
-  );
-
-  const aggregationResults = result?.body?.aggregations;
   if (aggregationResults) {
     interface BucketValue {
       value: number;
@@ -371,7 +364,7 @@ async function main() {
     })));
   }
 
-  console.log('ROOM,PARTICIPANT,BROWSER,SDK,ERRORS,LAST_ICE,ICE_ERRORS,DURATION,TRACK,STATE,TYPE,SENT,LOST');
+  console.log('ROOM,PARTICIPANT,BROWSER,SDK,SDKI_ERRORS,DTLS_ERRORS,LAST_ICE,ICE_ERRORS,DURATION,TRACK,STATE,TYPE,SENT,LOST');
   data.rooms.forEach(room => room.participants.forEach(participant => {
     let iceErrors = 0;
     let lastIceState = "none";
@@ -396,6 +389,7 @@ async function main() {
         ${participant.publisher?.browser}, \
         ${participant.publisher?.sdk_version}, \
         ${participant.errors.length}, \
+        ${participant.dtlsErrors.length}, \
         ${lastIceState}, \
         ${iceErrors}, \
         ${participantDuration}, \
@@ -403,18 +397,11 @@ async function main() {
         ${v.vms_data.payload.state}, \
         ${v.vms_data.payload.media_type}, \
         ${v.client_data?.sent || ''}, \
-        ${v.client_data?.lost || ''}, \
+        ${v.client_data?.lost || ''} \
       `);
     });
   }));
 }
-async function main2() {
-  const { statusCode, results }  = await getDTLSErrors();
-  results.forEach(v => {
-    if (v._source) {
-      console.log(v._source);
-    }
-  })
-}
+
 main()
 
