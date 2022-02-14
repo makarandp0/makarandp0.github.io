@@ -16,6 +16,8 @@
   "license": "ISC",
   "dependencies": {
     "@elastic/elasticsearch": "~7.17.0",
-    "elastic-builder": "^2.16.0"
+    "csv2json": "^2.0.2",
+    "elastic-builder": "^2.16.0",
+    "json2csv": "^5.0.6"
   }
 }

@@ -1,6 +1,7 @@
 import { Client } from '@elastic/elasticsearch'
 import type { Client as NewTypes } from '@elastic/elasticsearch/api/new'
 
+// use `curl http://localhost:29200/video` to check server version
 // @ts-expect-error @elastic/elasticsearch
 const client: NewTypes = new Client({ node: 'http://localhost:29200/video' })
 
@@ -13,8 +14,8 @@ export type QUERY_PARAMETERS = {
   aggs? : esb.Aggregation[];
 };
 
-// const mustEqual = { "group": 'recording', 'name': 'terminated', 'payload.state': ['ABSENT_NO_MEDIA', 'MEDIA_GAP']};
-// const mustRange = { timestamp: ['2022-02-09T21:48:43.599Z', '2022-02-09T22:18:43.599Z'] };
+// const filters = { "group": 'recording', 'name': 'terminated', 'payload.state': ['ABSENT_NO_MEDIA', 'MEDIA_GAP']};
+// const range = { timestamp: ['2022-02-09T21:48:43.599Z', '2022-02-09T22:18:43.599Z'] };
 // const returnFields = ["group", "name", "payload.state", "payload.track_sid"];
 export function   makeQueryBody({ filters = new Map(), range = new Map(), returnFields = [], aggs } : QUERY_PARAMETERS ): esb.RequestBodySearch {
   const must: esb.Query[] = [];

@@ -1,5 +1,5 @@
 import esb from 'elastic-builder/src';
-import { executeQuery, generateAndExecuteQuery, getObjectKeys, makeQueryBody, QUERY_PARAMETERS } from './utils';
+import { generateAndExecuteQuery } from './utils';
 import { AggregationsMultiBucketBase, AggregationsTermsAggregateBase } from '@elastic/elasticsearch/api/types';
 
 const timeRange = ['2022-02-08T20:00:43.599Z', '2022-02-11T22:00:43.599Z'];
@@ -364,7 +364,7 @@ async function main() {
     })));
   }
 
-  console.log('ROOM,PARTICIPANT,BROWSER,SDK,SDKI_ERRORS,DTLS_ERRORS,LAST_ICE,ICE_ERRORS,DURATION,TRACK,STATE,TYPE,SENT,LOST');
+  const rows: any = [];
   data.rooms.forEach(room => room.participants.forEach(participant => {
     let iceErrors = 0;
     let lastIceState = "none";
@@ -383,24 +383,25 @@ async function main() {
       participantDuration = (Date.parse(participant.disconnected_timestamp) - Date.parse(participant.connected_timestamp))/ 1000;
     }
     participant.tracks.forEach(v => {
-      console.log(` \
-        ${room.room_sid}, \
-        ${participant.participant_sid}, \
-        ${participant.publisher?.browser}, \
-        ${participant.publisher?.sdk_version}, \
-        ${participant.errors.length}, \
-        ${participant.dtlsErrors.length}, \
-        ${lastIceState}, \
-        ${iceErrors}, \
-        ${participantDuration}, \
-        ${v.track_sid}, \
-        ${v.vms_data.payload.state}, \
-        ${v.vms_data.payload.media_type}, \
-        ${v.client_data?.sent || ''}, \
-        ${v.client_data?.lost || ''} \
-      `);
+      rows.push({
+        Room: room.room_sid,
+        Participant: participant.participant_sid,
+        Browser: participant.publisher?.browser,
+        SDK: participant.publisher?.sdk_version,
+        SDKI_Errors: participant.errors.length,
+        DTLS_ERRORS: participant.dtlsErrors.length,
+        LastIceState: lastIceState,
+        Ice_Errors: iceErrors,
+        Duration: participantDuration,
+        Track: v.track_sid,
+        Track_State: v.vms_data.payload.state,
+        Track_Type: v.vms_data.payload.media_type,
+        Packets_Sent: v.client_data?.sent || '',
+        Packets_Lost: v.client_data?.lost || '',
+      });
     });
   }));
+  console.log(JSON.stringify(rows));
 }
 
 main()
