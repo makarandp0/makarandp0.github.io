@@ -9,52 +9,40 @@ import esb from 'elastic-builder/src';
 
 export type QUERY_PARAMETERS = {
   filters?: Map<string, string|string[]>;
-  range?: Map<string, string[]>;
+  ranges?: Map<string, string[]>;
   returnFields?: string[];
   aggs? : esb.Aggregation[];
 };
 
 // const filters = { "group": 'recording', 'name': 'terminated', 'payload.state': ['ABSENT_NO_MEDIA', 'MEDIA_GAP']};
-// const range = { timestamp: ['2022-02-09T21:48:43.599Z', '2022-02-09T22:18:43.599Z'] };
+//   for array values filter would satisfy any of the value.
+// const ranges = { timestamp: ['2022-02-09T21:48:43.599Z', '2022-02-09T22:18:43.599Z'] };
 // const returnFields = ["group", "name", "payload.state", "payload.track_sid"];
-export function   makeQueryBody({ filters = new Map(), range = new Map(), returnFields = [], aggs } : QUERY_PARAMETERS ): esb.RequestBodySearch {
-  const must: esb.Query[] = [];
-
-  filters.forEach((v, k) => {
-    if (!Array.isArray(v)) {
-      must.push(esb.matchQuery(k, v));
-    }
-  });
-
-  const boolQueries = [
-    esb.boolQuery().must(must)
-  ];
-
+export function   makeQueryBody({ filters = new Map(), ranges = new Map(), returnFields = [], aggs } : QUERY_PARAMETERS ): esb.RequestBodySearch {
+  const mainQuery = esb.boolQuery();
+  const shouldQueries: esb.BoolQuery[] = [];
   filters.forEach((v, k) => {
     if (Array.isArray(v)) {
-      const oneOf: esb.MatchQuery[] = [];
-      v.forEach(val => {
-        oneOf.push(esb.matchQuery(k, val));
-      });
-      boolQueries.push(esb.boolQuery().minimumShouldMatch(1).should(oneOf));
+      const termQueries = v.map(val => esb.termQuery(k, val));
+      shouldQueries.push(esb.boolQuery().minimumShouldMatch(1).should(termQueries));
+    } else {
+      mainQuery.filter(esb.termQuery(k, v));
     }
   });
 
-  range.forEach((v, k) => {
-    must.push(esb.rangeQuery(k).gte(v[0]).lt(v[1]));
+  ranges.forEach((v, k) => {
+    mainQuery.filter(esb.rangeQuery(k).gte(v[0]).lt(v[1]))
   });
 
   const requestBody = esb.requestBodySearch().query(
-    esb.boolQuery()
-        .filter(boolQueries)
+    mainQuery.filter(shouldQueries)
   ).source(returnFields);
 
   if (aggs) {
     requestBody.aggs(aggs);
   };
 
-  // console.log('======== From QB:');
-  // esb.prettyPrint(requestBody)
+  // esb.prettyPrint(requestBody);
   return requestBody;
 }
 
