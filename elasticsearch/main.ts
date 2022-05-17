@@ -1,29 +1,13 @@
-import esb from 'elastic-builder/src';
+#!/usr/bin/env node
+import esb, { minAggregation } from 'elastic-builder/src';
 import { generateAndExecuteQuery } from './utils';
 import { AggregationsMultiBucketBase, AggregationsTermsAggregateBase } from '@elastic/elasticsearch/api/types';
-
-const timeRange = ['2022-02-08T20:00:43.599Z', '2022-02-11T22:00:43.599Z'];
+import { debuglog } from 'util';
+import { debug } from 'console';
 
 const HONORLOCK_ACCOUNT_SID = 'ACf469d11902f69e0ce2b9dba56d3415e7';
-const room_sids = [
-  'RM8473d9b14724bf9fedfc407ffc1507e1',
-  'RM59076307d384f4b3e26e47cd8929e81a',
-  'RM8fe9dea3787bbebdeff01674e38b3605',
-  'RMb2b74fee64826c621d85fc3d3222ffd1',
-  'RMc3d4a383700a37771709a05dd9442bad',
-  'RM350760a307812f3a89f2830e41907b06',
-  'RM9ae8214c4f69cd1d3c0e8598a3effd97',
-  'RMde1f4a5708ba76e9f9e63322cb22a6e0',
-  'RM0506d4af0474beeb8d2baab8b8791fd3',
-  'RM0914c9a8de7ec50332998a8c83e963d9',
-  'RMfd89351ba1498bc45fb60c5e7360fb3d',
-  'RM1a07d6625b7312d5e3b468b0815d7bda',
-  'RM872f6410d53e42ec32ea67fe2b0bcd81',
-  'RMac256ca51c0a892f4df0c0533ad048e9',
-];
 
-
-export async function getIceStatesFromVMS(timeRange: string[]) {
+export async function getIceStatesFromVMS({ timeRange, room_sids, debugMode }:{ timeRange: string[], room_sids: string[], debugMode: boolean}) {
   const VMSIceConnectionStates = {
     timestamp: "2022-02-11 21:38:28.342+00:00-sample",
     payload: {
@@ -41,7 +25,7 @@ export async function getIceStatesFromVMS(timeRange: string[]) {
       ['name', 'ice_state_changed'],
       ['payload.room_sid', room_sids]
     ]),
-    range: new Map([
+    ranges: new Map([
       ['timestamp', timeRange]
     ])
     }
@@ -61,7 +45,7 @@ const VMSTrackRecordingStates = {
   }
 };
 
-export async function getTrackSIDSfromVMS(timeRange: string[]) {
+export async function getTrackSIDSfromVMS({ timeRange, room_sids, debugMode }:{ timeRange: string[], room_sids: string[], debugMode: boolean}) {
   const { statusCode, results } = await generateAndExecuteQuery<typeof VMSTrackRecordingStates>({
     index: 'video-vms-reports-*',
     sample: VMSTrackRecordingStates,
@@ -71,7 +55,7 @@ export async function getTrackSIDSfromVMS(timeRange: string[]) {
         ['name', 'terminated'],
         ['payload.room_sid', room_sids]
       ]),
-      range: new Map([
+      ranges: new Map([
         ['timestamp', timeRange]
       ])
     }
@@ -99,16 +83,16 @@ const RoomParticipantSample = {
     }
   }
 }
-export async function getRoomParticipantInfo() {
+export async function getRoomParticipantInfo({ timeRange, room_sids, debugMode }:{ timeRange: string[], room_sids: string[], debugMode: boolean}) {
   const { statusCode, results } = await generateAndExecuteQuery<typeof RoomParticipantSample>({
     index: 'sdki-rooms-*',
     sample: RoomParticipantSample,
     queryParameters: {
       filters: new Map([
         ['payload.room_sid', room_sids],
-        ['name', ['connected', 'disconnected', 'disconnect']]
+        ['name', ['connected', 'disconnected', 'disconnect', 'participant_disconnected']]
       ]),
-      range: new Map([
+      ranges: new Map([
         ['timestamp', timeRange]
       ]),
     }
@@ -117,7 +101,7 @@ export async function getRoomParticipantInfo() {
 }
 
 // connected later.
-export async function getRoomErrors() {
+export async function getRoomErrors({ timeRange, room_sids, debugMode }:{ timeRange: string[], room_sids: string[], debugMode: boolean}) {
   const RoomErrorsSample = {
     payload: {
       room_sid: "",
@@ -138,7 +122,7 @@ export async function getRoomErrors() {
       ["name", 'error'],
       ['payload.room_sid', room_sids]
       ]),
-      range: new Map([
+      ranges: new Map([
         ['timestamp', timeRange]
       ])
     }
@@ -147,7 +131,7 @@ export async function getRoomErrors() {
 }
 
 
-async function getDTLSErrors() {
+async function getDTLSErrors({ timeRange, room_sids, debugMode }:{ timeRange: string[], room_sids: string[], debugMode: boolean}) {
   //  dtls_connection
   const DTLSErrorsSample = {
     name: "",
@@ -167,15 +151,14 @@ async function getDTLSErrors() {
         ['payload.state', 'CONNECTION_ERROR'],
         ['payload.room_sid', room_sids]
       ]),
-      range: new Map([
+      ranges: new Map([
         ['timestamp', timeRange]
       ])
   }});
   return { statusCode, results };
 }
 
-async function main() {
-
+async function getRoomReport({ timeRange, room_sids, debugMode }:{ timeRange: string[], room_sids: string[], debugMode: boolean}) {
   interface IParticipantError {
     timestamp: string;
     error_code: number;
@@ -255,7 +238,10 @@ async function main() {
     return pEntry;
   }
 
-  const participantsInfo = await getRoomParticipantInfo();
+  const participantsInfo = await getRoomParticipantInfo({ timeRange, room_sids, debugMode });
+  if (debugMode) {
+    console.log("participantsInfo.results.length: ", participantsInfo.results.length);
+  }
   participantsInfo.results.forEach(p => {
     if (p._source) {
       const info = p._source;
@@ -263,7 +249,7 @@ async function main() {
       if (info.name === 'connected') {
         entry.connected_timestamp = info.timestamp;
         entry.publisher = info.payload.publisher;
-      } else if (info.name === 'disconnected') {
+      } else if (info.name === 'participant_disconnected') {
         entry.disconnected_timestamp = info.timestamp || '';
       } else if (info.name === 'disconnect') {
         entry.disconnect_timestamp = info.timestamp || '';
@@ -271,7 +257,11 @@ async function main() {
     }
   });
 
-  const roomErrors  = await getRoomErrors();
+  const roomErrors  = await getRoomErrors({ timeRange, room_sids, debugMode });
+  if (debugMode) {
+    console.log("roomErrors.results.length: ", roomErrors.results.length);
+  }
+
   roomErrors.results.forEach(p => {
     if (p._source) {
       const info = p._source;
@@ -284,7 +274,11 @@ async function main() {
     }
   });
 
-  const dtlsErrors = await getDTLSErrors();
+  const dtlsErrors = await getDTLSErrors({ timeRange, room_sids, debugMode });
+  if (debugMode) {
+    console.log("dtlsErrors.results.length: ", dtlsErrors.results.length);
+  }
+
   dtlsErrors.results.forEach(p => {
     if (p._source) {
       const info = p._source;
@@ -294,7 +288,11 @@ async function main() {
   })
 
 
-  const vmsRecordingStates = await getTrackSIDSfromVMS(timeRange);
+  const vmsRecordingStates = await getTrackSIDSfromVMS({ timeRange, room_sids, debugMode});
+  if (debugMode) {
+    console.log("vmsRecordingStates.results.length: ", vmsRecordingStates.results.length);
+  }
+
   vmsRecordingStates.results.forEach(t => {
     if (t._source) {
       const info = t._source;
@@ -304,7 +302,11 @@ async function main() {
   const trackSids: string[] = [];
   data.rooms.forEach(r => r.participants.forEach(p => p.tracks.forEach(t => trackSids.push(t.track_sid))))
 
-  const vmsIceStates = await getIceStatesFromVMS(timeRange);
+  const vmsIceStates = await getIceStatesFromVMS({ timeRange, room_sids, debugMode });
+  if (debugMode) {
+    console.log("vmsIceStates.results.length: ", vmsIceStates.results.length);
+  }
+
   vmsIceStates.results.forEach(r => {
     if (r._source) {
       const info = r._source;
@@ -313,6 +315,10 @@ async function main() {
       entry.iceStateMap.set(new Date(Date.parse(info.timestamp)), info.payload.ice_state);
     }
   });
+
+  if (debugMode) {
+    console.log("trackSids.length: ", trackSids.length);
+  }
 
   // aggregate track_sids and then find max values for packets_sent
   const agg = esb.termsAggregation('tracks', 'payload.track_sid').aggs([
@@ -331,7 +337,7 @@ async function main() {
         ['payload.track_sid', trackSids],
         ['payload.track_type', ['localAudioTrack', 'localVideoTrack']]
       ]),
-      range: new Map([
+      ranges: new Map([
         ['server_timestamp', timeRange]
       ])
     },
@@ -382,6 +388,9 @@ async function main() {
     if (participant.disconnected_timestamp && participant.connected_timestamp)  {
       participantDuration = (Date.parse(participant.disconnected_timestamp) - Date.parse(participant.connected_timestamp))/ 1000;
     }
+    if (participant.disconnect_timestamp) {
+
+    }
     participant.tracks.forEach(v => {
       rows.push({
         Room: room.room_sid,
@@ -393,6 +402,7 @@ async function main() {
         LastIceState: lastIceState,
         Ice_Errors: iceErrors,
         Duration: participantDuration,
+        ParticipantDisconnected: participant.disconnect_timestamp ? true: false,
         Track: v.track_sid,
         Track_State: v.vms_data.payload.state,
         Track_Type: v.vms_data.payload.media_type,
@@ -404,5 +414,85 @@ async function main() {
   console.log(JSON.stringify(rows));
 }
 
-main()
+// returns a map of <string, number> for each value of payload.state for a terminated recording.
+async function getRecordingResultDistribution(timeRange: string[]) {
+  const agg = esb.termsAggregation('state', 'payload.state');
+  console.log(agg);
+  const { aggregations: aggregationResults, results } = await generateAndExecuteQuery({
+    index: 'video-vms-reports-*',
+    sample: {},
+    queryParameters: {
+      filters: new Map<string,string|string[]>([
+        ["group", 'recording'],
+        ['name', 'terminated'],
+        ['account_sid', HONORLOCK_ACCOUNT_SID]
+      ]),
+      ranges: new Map([
+        ['timestamp', timeRange]
+      ])
+    },
+    aggs: [agg]
+  });
 
+  if (aggregationResults) {
+    interface AggregationProperties extends AggregationsMultiBucketBase {
+      key: string;
+      doc_count: number;
+    };
+    const state = aggregationResults.state as AggregationsTermsAggregateBase<AggregationProperties>
+    const buckets = state.buckets as AggregationProperties[];
+    const result = new Map<string, number>();
+    buckets.forEach(bucket => result.set(bucket.key, bucket.doc_count));
+    return result;
+  }
+}
+
+async function getProblemRoomSids({ timeRange, debugMode } : { timeRange: string[], debugMode: boolean }) {
+  const VMSRecordSample = {
+    payload: {
+      room_sid: "",
+      participant_sid: "",
+    }
+  };
+  const { results } = await generateAndExecuteQuery({
+    index: 'video-vms-reports-*',
+    sample: VMSRecordSample,
+    queryParameters: {
+      filters: new Map<string,string|string[]>([
+        ["group", 'recording'],
+        ['name', 'terminated'],
+        ['payload.state', ['ABSENT_NO_MEDIA', 'ABSENT_NO_DECODABLE_MEDIA']],
+        ['account_sid', HONORLOCK_ACCOUNT_SID]
+      ]),
+      ranges: new Map([
+        ['timestamp', timeRange]
+      ])
+    }
+  });
+
+  const roomSids: string[] = [];
+  results.map(result => {
+    if (result._source) {
+      roomSids.push(result._source.payload.room_sid);
+    }
+  });
+  return roomSids;
+}
+
+
+async function RoomProblemReport ({ timeRange, debugMode }: { timeRange: string[], debugMode: boolean }) {
+  // find rooms with ABSENT_NO_MEDIA, ABSENT_NO_DECODABLE_MEDIA
+  if (debugMode) {
+    const distribution = await getRecordingResultDistribution(timeRange);
+    console.log(distribution);
+  }
+  const room_sids = await getProblemRoomSids({ timeRange, debugMode });
+  await getRoomReport({ timeRange, room_sids, debugMode });
+
+}
+
+
+const debugMode = (process.argv.length >= 3) && process.argv[2].toLowerCase() === "debug";
+// console.log('argv:', process.argv);
+const timeRange = ['2022-02-14T00:00:00.000Z', '2022-02-14T23:59:59.000Z'];
+RoomProblemReport({ timeRange, debugMode });
